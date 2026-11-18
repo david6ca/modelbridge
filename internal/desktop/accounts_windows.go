@@ -220,6 +220,15 @@ func (w *Window) paintAccountControl(p painter, c control) {
 	}
 }
 
+func (w *Window) paintAccounts(hwnd, dc uintptr) {
+	p := painter{w, dc}
+	p.fill(0, 0, 284, min(216, len(w.popupAccounts)*36)+86, w.palette.panel)
+	if hwnd == w.accountPopup {
+		y := min(216, len(w.popupAccounts)*36) + 4
+		p.line(8, y, 272, y, 1, w.palette.border)
+	}
+}
+
 func accountPopupProc(hwnd uintptr, msg uint32, wp, lp uintptr) uintptr {
 	w := active
 	if w == nil {
@@ -260,13 +269,11 @@ func accountPopupProc(hwnd uintptr, msg uint32, wp, lp uintptr) uintptr {
 	case 0xf:
 		var ps paintStruct
 		dc := proc("BeginPaint", hwnd, uintptr(unsafe.Pointer(&ps)))
-		p := painter{w, dc}
-		p.fill(0, 0, 284, 266, w.palette.panel)
-		if hwnd == w.accountPopup {
-			y := min(216, len(w.popupAccounts)*36) + 4
-			p.line(8, y, 272, y, 1, w.palette.border)
-		}
+		w.paintAccounts(hwnd, dc)
 		proc("EndPaint", hwnd, uintptr(unsafe.Pointer(&ps)))
+		return 0
+	case 0x318:
+		w.paintAccounts(hwnd, wp)
 		return 0
 	case 0x14:
 		return 1

@@ -191,8 +191,12 @@ with private file permissions. Existing single-account logins migrate in place.
 Login startup runs in the tray when close to tray is enabled; otherwise it opens
 the window. Settings are saved in `~/.kobashi/settings.json` independently of your
 GitHub connection and are preserved when you disconnect. The main window is
-400 logical pixels wide. The connected main screen uses a 400 × 259 content area,
-and Settings uses 400 × 220. Changing pages preserves the window's top edge.
+400 logical pixels wide. The connected main screen uses a 400 × 259 content area;
+Settings uses 400 × 220, and GitHub device authorization uses 400 × 232.
+Changing pages preserves the window's top edge. Client icons and switches use
+matching 28-point outer insets. Settings selectors are vertically centered on
+their labels at every DPI; the device card uses 24-point outer and 16-point inner
+insets.
 The content has no product logo, title, version link, or Settings Done button.
 Settings uses Back (or Escape) to return to the main screen. The account area is
 flat above one edge-to-edge client surface; Windows retains its native titlebar

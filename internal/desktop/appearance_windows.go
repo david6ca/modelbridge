@@ -90,11 +90,35 @@ func (w *Window) contentHeight() int {
 		return 259
 	case "settings":
 		return 220
+	case "device":
+		return 232
 	}
 	return windowHeight
 }
 
 func (w *Window) layout() {
+	dc := proc("GetDC", w.Handle)
+	if dc == 0 {
+		w.notice = "Windows could not measure the interface text."
+		return
+	}
+	defer proc("ReleaseDC", w.Handle, dc)
+	old, _, _ := gdi.NewProc("SelectObject").Call(dc, w.small)
+	defer gdi.NewProc("SelectObject").Call(dc, old)
+	measure := func(title string) (int, error) {
+		var extent point
+		if result, _, _ := gdi.NewProc("GetTextExtentPoint32W").Call(dc, uintptr(unsafe.Pointer(wide(title))),
+			uintptr(len(syscall.StringToUTF16(title))-1), uintptr(unsafe.Pointer(&extent))); result == 0 {
+			return 0, fmt.Errorf("Windows could not measure %q.", title)
+		}
+		return (int(extent.X)*96 + w.dpi - 1) / w.dpi, nil
+	}
+	width, err := measure(w.tr("Connected"))
+	if err != nil {
+		w.notice = err.Error()
+		return
+	}
+	accountWidth := width + 34
 	var hint, link *control
 	for i := range w.controls {
 		switch w.controls[i].id {
@@ -105,26 +129,17 @@ func (w *Window) layout() {
 		}
 	}
 	if hint != nil && link != nil {
-		dc := proc("GetDC", w.Handle)
-		if dc == 0 {
-			w.notice = "Windows could not measure the sign-in text."
-		} else {
-			old, _, _ := gdi.NewProc("SelectObject").Call(dc, w.small)
-			for _, c := range []*control{hint, link} {
-				var extent point
-				if result, _, _ := gdi.NewProc("GetTextExtentPoint32W").Call(dc, uintptr(unsafe.Pointer(wide(w.tr(c.title)))),
-					uintptr(len(syscall.StringToUTF16(w.tr(c.title)))-1), uintptr(unsafe.Pointer(&extent))); result == 0 {
-					w.notice = "Windows could not measure the sign-in text."
-				} else {
-					c.w = (int(extent.X)*96+w.dpi-1)/w.dpi + 8
-				}
+		for _, c := range []*control{hint, link} {
+			width, err := measure(w.tr(c.title))
+			if err != nil {
+				w.notice = err.Error()
+				return
 			}
-			gdi.NewProc("SelectObject").Call(dc, old)
-			proc("ReleaseDC", w.Handle, dc)
-			hint.x = (windowWidth - hint.w - 6 - link.w) / 2
-			link.x = hint.x + hint.w + 6
-			hint.y = link.y
+			c.w = width + 8
 		}
+		hint.x = (windowWidth - hint.w - 6 - link.w) / 2
+		link.x = hint.x + hint.w + 6
+		hint.y = link.y
 	}
 	for i := range w.controls {
 		c := &w.controls[i]
@@ -133,12 +148,19 @@ func (w *Window) layout() {
 		}
 		c.y = c.baseY
 		if c.id == idAccounts {
-			c.x, c.y, c.w = 312, 8, 28
+			c.x, c.y, c.w = 340-accountWidth, 2, accountWidth
 			if w.view != "connected" {
 				c.x, c.y, c.w = 140, 52, 120
 				if w.view == "token" {
 					c.y = 60
 				}
+			}
+		} else if c.id == 7 {
+			c.w = min(204, 340-accountWidth-8-c.x)
+		} else if c.id == idCancelAccount {
+			c.x, c.y, c.w, c.h = 32, 60, 76, 28
+			if w.view == "device" {
+				c.x, c.y, c.w, c.h = 16, 0, 32, 32
 			}
 		} else if c.id == idConnect {
 			c.y = 100
@@ -156,18 +178,25 @@ func (w *Window) layout() {
 			case "connected":
 				c.x, c.y, c.h, c.w = 28, 42, 32, 344
 			case "settings":
-				c.x, c.y, c.w, c.h = 152, 0, 224, 40
+				c.x, c.y, c.w, c.h = 48, 8, 328, 32
 			// case "client", "server":
 			// 	c.y, c.h = 280, 42
 			case "token":
 				c.y, c.h = 267, 62
 			case "device":
-				c.y, c.h = 300, 32
+				c.x, c.y, c.w, c.h = 40, 160, 320, 32
 			case "quitting":
 				c.y = 160
 			}
 		}
 		proc("MoveWindow", c.handle, uintptr(c.x*w.dpi/96), uintptr(c.y*w.dpi/96), uintptr(c.w*w.dpi/96), uintptr(c.h*w.dpi/96), 0)
+		if c.class == "COMBOBOX" {
+			var bounds rect
+			proc("GetWindowRect", c.handle, uintptr(unsafe.Pointer(&bounds)))
+			// Win32 chooses the collapsed height from the font, not the requested row height.
+			offset := (c.h*w.dpi/96 - int(bounds.Bottom-bounds.Top)) / 2
+			proc("SetWindowPos", c.handle, 0, uintptr(c.x*w.dpi/96), uintptr(c.y*w.dpi/96+offset), 0, 0, 0x15)
+		}
 	}
 }
 
@@ -366,7 +395,7 @@ func (w *Window) paintWindow(dc uintptr) {
 			p.fill(0, 0, windowWidth, 91, header)
 			p.fill(0, 91, windowWidth, w.contentHeight()-91, c.panel)
 		case "device":
-			p.round(32, 126, 336, 170, 12, c.input, c.border)
+			p.round(24, 48, 352, 160, 12, c.input, c.border)
 		case "token":
 			border := c.border
 			if proc("GetFocus") == w.control(idToken) {
@@ -408,10 +437,8 @@ func (w *Window) paintControl(c control, dc uintptr) {
 			colors.connected, colors.danger, colors.accent = header.connected, header.danger, header.accent
 			bg = 0
 		}
-		if c.view == "device" && c.id != 12 || c.id == 7 || c.id == 8 || c.id == idDisconnect {
-			if c.view == "device" {
-				bg = colors.input
-			}
+		if w.view == "device" && (c.view == "device" || c.id == 12) {
+			bg = colors.input
 		}
 		if c.id == idClaude || c.id == idCodex || c.id == idCopilot {
 			bg = colors.panel
@@ -427,17 +454,14 @@ func (w *Window) paintControl(c control, dc uintptr) {
 		switch c.id {
 		case 13:
 			p.text(title, 0, 0, c.w, c.h, w.font, colors.muted, 0x25)
-		case idDisconnect, idAccounts:
+		case idAccounts:
 			if w.view == "connected" {
 				if c.hover {
 					p.round(0, 0, c.w, c.h, 5, colors.hover, colors.hover)
 				}
-				if c.id == idAccounts {
-					p.line(9, 12, 14, 17, 1, colors.muted)
-					p.line(14, 17, 19, 12, 1, colors.muted)
-				} else {
-					p.text(title, 2, 0, c.w-4, c.h, w.small, colors.connected, 0x25)
-				}
+				p.text(w.tr("Connected"), 2, 6, c.w-28, 22, w.small, colors.connected, 0x26)
+				p.line(c.w-19, 12, c.w-14, 17, 1, colors.muted)
+				p.line(c.w-14, 17, c.w-9, 12, 1, colors.muted)
 			} else {
 				p.text(title, 0, 0, c.w, c.h, w.small, colors.accent, 0x825)
 			}
@@ -493,20 +517,20 @@ func (w *Window) paintControl(c control, dc uintptr) {
 			} else {
 				p.artwork("codex", 14, 10, 24, colors.tile, colors.text, true)
 			}
-			p.text(title, 54, 2, 180, 20, w.small, fg, 0x24)
+			p.text(title, 54, 2, 180, 18, w.small, fg, 0x24)
 			on := proc("SendMessageW", c.handle, 0xf0, 0, 0) == 1
 			word, dot := bridgeStatusText(c.id, on, w.pendingBridge == c.id), colors.disconnected
 			if on {
 				dot = colors.connected
 			}
-			p.round(58, 29, 8, 8, 4, dot, dot)
-			p.text(w.tr(word), 74, 20, 180, 24, w.small, dot, 0x824)
+			p.round(58, 23, 8, 8, 4, dot, dot)
+			p.text(w.tr(word), 74, 18, 180, 18, w.small, dot, 0x824)
 			track, knob := colors.toggle, 2
 			if on {
 				track, knob = colors.on, 22
 			}
-			p.round(c.w-55, 10, 44, 24, 12, track, colors.border)
-			p.round(c.w-55+knob, 13, 18, 18, 9, colors.knob, colors.knob)
+			p.round(c.w-54, 10, 44, 24, 12, track, colors.border)
+			p.round(c.w-54+knob, 13, 18, 18, 9, colors.knob, colors.knob)
 		case idStartup, idTray:
 			p.text(title, 8, 4, c.w-48, 24, w.small, fg, 0x24)
 			fill, border := colors.button, colors.muted
@@ -523,6 +547,18 @@ func (w *Window) paintControl(c control, dc uintptr) {
 		case idSettingsBack:
 			p.line(19, 9, 12, 16, 2, colors.muted)
 			p.line(12, 16, 19, 23, 2, colors.muted)
+		case idCancelAccount:
+			if w.view == "device" {
+				p.line(19, 9, 12, 16, 2, colors.muted)
+				p.line(12, 16, 19, 23, 2, colors.muted)
+			} else {
+				fill, border := colors.button, colors.border
+				if c.hover || proc("SendMessageW", c.handle, 0xf2, 0, 0)&4 != 0 {
+					fill, border = colors.hover, colors.accent
+				}
+				p.round(0, 0, c.w, c.h, min(10, c.h/3), fill, border)
+				p.text(title, 2, 0, c.w-4, c.h, w.bold, fg, 0x25)
+			}
 		case idSettings:
 			if c.hover {
 				p.round(0, 0, c.w, c.h, 6, colors.hover, colors.hover)
@@ -530,6 +566,9 @@ func (w *Window) paintControl(c control, dc uintptr) {
 			p.text("\ue713", 0, 0, c.w, c.h, w.symbolFont, colors.muted, 0x825)
 		case idTokenView, idBrowser:
 			rgb, flags := colors.accent, uintptr(0x825)
+			if c.id == idBrowser && w.view == "device" {
+				flags = 0x824
+			}
 			p.text(title, 0, 0, c.w, c.h, w.small, rgb, flags)
 		default:
 			if c.id >= accountControlBase {

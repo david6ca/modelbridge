@@ -230,7 +230,7 @@ func TestNativeAppearanceMatchesExistingInterface(t *testing.T) {
 		w.view = "connected"
 		w.busy = true
 		w.render()
-		if proc("IsWindowEnabled", w.control(idAccounts)) == 0 || proc("IsWindowEnabled", w.control(idDisconnect)) == 0 {
+		if proc("IsWindowEnabled", w.control(idAccounts)) == 0 {
 			t.Fatal("a pending bridge action must not block opening the saved account list")
 		}
 		count := len(w.controls)
@@ -240,6 +240,13 @@ func TestNativeAppearanceMatchesExistingInterface(t *testing.T) {
 		if len(w.popupAccounts) != 12 || w.accountPopup == 0 || w.accountList == 0 ||
 			len(w.controls) != count+26 || w.control(idAccountDisconnect) == 0 {
 			t.Fatal("popup does not expose every account with separate switch/remove buttons")
+		}
+		var popupBounds rect
+		proc("GetClientRect", w.accountPopup, uintptr(unsafe.Pointer(&popupBounds)))
+		popup := captureClient(t, w.accountPopup, int(popupBounds.Right), int(popupBounds.Bottom))
+		background := color.NRGBA{R: byte(w.palette.panel >> 16), G: byte(w.palette.panel >> 8), B: byte(w.palette.panel), A: 255}
+		if popup.NRGBAAt(4, int(popupBounds.Bottom)-4) != background {
+			t.Fatal("the account menu footer has an unpainted bottom margin")
 		}
 		if proc("IsWindowEnabled", w.control(accountControlBase)) != 0 ||
 			proc("IsWindowEnabled", w.control(accountControlBase+1)) != 0 ||
@@ -352,7 +359,7 @@ func TestNativeAppearanceMatchesExistingInterface(t *testing.T) {
 	w.verification = "https://github.com/login/device"
 	assertStatus := func(id int, want string, rgb uint32) {
 		t.Helper()
-		if id == idDisconnect && !w.highContrast {
+		if id == idAccounts && !w.highContrast {
 			rgb = themePalette(true, false).connected
 		}
 		h := w.control(id)
@@ -385,7 +392,7 @@ func TestNativeAppearanceMatchesExistingInterface(t *testing.T) {
 			w.controls[i].hover = false
 			want := w.palette.button
 			sample := 10
-			if id == idDisconnect {
+			if id == idAccounts {
 				want = themePalette(true, false).hover
 				if w.highContrast {
 					want = w.palette.hover
@@ -407,7 +414,7 @@ func TestNativeAppearanceMatchesExistingInterface(t *testing.T) {
 		if colored < 4 {
 			t.Fatal("connection status is not rendered in its state color", id, w.dpi, rgb)
 		}
-		if id == idDisconnect {
+		if id == idAccounts {
 			return
 		}
 		border := pixel(w.palette.border)
@@ -452,13 +459,16 @@ func TestNativeAppearanceMatchesExistingInterface(t *testing.T) {
 		if client.Right != int32(windowWidth*w.dpi/96) || client.Bottom != int32(259*w.dpi/96) {
 			t.Fatalf("connected/%d DPI does not use the compact macOS content size: %v", w.dpi, client)
 		}
-		for id, y := range map[int]int{7: 8, 8: 42, idDisconnect: 8, idCodex: 109, idClaude: 153,
+		for id, y := range map[int]int{7: 8, 8: 42, idAccounts: 2, idCodex: 109, idClaude: 153,
 			idCopilot: 197} {
 			var bounds rect
 			proc("GetWindowRect", w.control(id), uintptr(unsafe.Pointer(&bounds)))
 			proc("MapWindowPoints", 0, w.Handle, uintptr(unsafe.Pointer(&bounds)), 2)
 			if bounds.Top != int32(y*w.dpi/96) {
 				t.Fatalf("connected/%d DPI misaligns control %d: %v", w.dpi, id, bounds)
+			}
+			if w.control(idDisconnect) != 0 {
+				t.Fatal("Connected and its arrow must share one account-menu button")
 			}
 		}
 		noticeVisible := proc("GetWindowLongW", w.control(12), ^uintptr(15))&0x10000000 != 0
@@ -479,6 +489,17 @@ func TestNativeAppearanceMatchesExistingInterface(t *testing.T) {
 			t.Fatal("connected error must fit in the usage slot", noticeBounds)
 		}
 		screenshot := captureClient(t, w.Handle, int(client.Right), int(client.Bottom))
+		gearPixels := 0
+		for y := 16 * w.dpi / 96; y < 32*w.dpi/96; y++ {
+			for x := 352 * w.dpi / 96; x < 368*w.dpi/96; x++ {
+				if got := screenshot.NRGBAAt(x, y); got.R != 0 || got.G != 0 || got.B != 0 {
+					gearPixels++
+				}
+			}
+		}
+		if !w.highContrast && gearPixels == 0 {
+			t.Fatal("the Settings glyph is missing from the connected header", w.dpi)
+		}
 		pixel := func(x, y int) color.NRGBA {
 			return screenshot.NRGBAAt(x*w.dpi/96, y*w.dpi/96)
 		}
@@ -510,7 +531,7 @@ func TestNativeAppearanceMatchesExistingInterface(t *testing.T) {
 				assertStatus(idLogin, "Not Connected", w.palette.disconnected)
 			}
 			if view == "connected" {
-				assertStatus(idDisconnect, "Connected", w.palette.connected)
+				assertStatus(idAccounts, "Accounts", w.palette.connected)
 				assertConnectedLayout()
 				for _, enabled := range []bool{true, false} {
 					for _, key := range []string{"claudeEnabled", "codexEnabled", "copilotEnabled"} {
@@ -524,7 +545,7 @@ func TestNativeAppearanceMatchesExistingInterface(t *testing.T) {
 					want := color.NRGBA{R: byte(dot >> 16), G: byte(dot >> 8), B: byte(dot), A: 255}
 					for _, id := range []int{idClaude, idCodex, idCopilot} {
 						image := captureClient(t, w.control(id), 364, 44)
-						if got := image.NRGBAAt(62, 33); got != want {
+						if got := image.NRGBAAt(62, 27); got != want {
 							t.Fatal("status dot does not use its semantic color", theme, id, enabled, got, want)
 						}
 					}
@@ -552,7 +573,7 @@ func TestNativeAppearanceMatchesExistingInterface(t *testing.T) {
 				if view == "idle" {
 					assertStatus(idConnect, "Not Connected", w.palette.disconnected)
 				} else {
-					assertStatus(idDisconnect, "Connected", w.palette.connected)
+					assertStatus(idAccounts, "Accounts", w.palette.connected)
 				}
 				w.busy = false
 				w.render()
@@ -589,9 +610,8 @@ func TestNativeAppearanceMatchesExistingInterface(t *testing.T) {
 	for id, want := range map[int]rect{
 		idSettings: {344, 8, 376, 40},
 		idCodex:    {18, 109, 382, 153}, idClaude: {18, 153, 382, 197},
-		idCopilot:    {18, 197, 382, 241},
-		idDisconnect: {236, 8, 312, 36},
-		idStartup:    {16, 48, 384, 80}, idTray: {16, 84, 384, 116},
+		idCopilot: {18, 197, 382, 241},
+		idStartup: {16, 48, 384, 80}, idTray: {16, 84, 384, 116},
 		idAppearanceLabel: {24, 131, 176, 149},
 		idSettingsBack:    {16, 0, 48, 32},
 	} {
@@ -694,7 +714,7 @@ func TestNativeAppearanceMatchesExistingInterface(t *testing.T) {
 			}
 			w.view = "connected"
 			w.render()
-			assertStatus(idDisconnect, "Connected", w.palette.connected)
+			assertStatus(idAccounts, "Accounts", w.palette.connected)
 			assertConnectedLayout()
 			for _, id := range []int{idCodex, idClaude, idCopilot} {
 				w.busy, w.pendingBridge = true, id
@@ -773,6 +793,26 @@ func TestNativeAppearanceMatchesExistingInterface(t *testing.T) {
 				appearanceBounds.Top < int32(124*dpi/96) || appearanceBounds.Bottom > int32(164*dpi/96) {
 				t.Fatal("native Appearance selector overlaps other Settings controls", theme, dpi, appearanceBounds)
 			}
+			for _, row := range []struct{ label, selector int }{{idAppearanceLabel, idAppearance}, {idLanguageLabel, idLanguage}} {
+				var label, selector rect
+				proc("GetWindowRect", w.control(row.label), uintptr(unsafe.Pointer(&label)))
+				proc("GetWindowRect", w.control(row.selector), uintptr(unsafe.Pointer(&selector)))
+				if delta := int(label.Top + label.Bottom - selector.Top - selector.Bottom); delta < -2 || delta > 2 {
+					t.Fatal("the native selector is not centered on its label", theme, dpi, row.selector, label, selector)
+				}
+			}
+			w.notice = "Could not save settings."
+			w.render()
+			if proc("GetWindowLongW", w.control(9), ^uintptr(15))&0x10000000 != 0 ||
+				proc("GetWindowLongW", w.control(12), ^uintptr(15))&0x10000000 == 0 {
+				t.Fatal("a settings error must replace its heading without overlapping it")
+			}
+			w.notice = ""
+			w.render()
+			if proc("GetWindowLongW", w.control(9), ^uintptr(15))&0x10000000 == 0 ||
+				proc("GetWindowLongW", w.control(12), ^uintptr(15))&0x10000000 != 0 {
+				t.Fatal("an empty settings notice must not cover the heading")
+			}
 			background := color.NRGBA{R: byte(w.palette.background >> 16), G: byte(w.palette.background >> 8),
 				B: byte(w.palette.background), A: 255}
 			for y := 40; y < 220; y++ {
@@ -838,6 +878,34 @@ func TestNativeAppearanceMatchesExistingInterface(t *testing.T) {
 				w.view = view
 				w.render()
 				assertVisibleControlsFit()
+				if view == "device" {
+					proc("GetClientRect", w.Handle, uintptr(unsafe.Pointer(&client)))
+					if client.Bottom != int32(232*dpi/96) ||
+						proc("GetWindowLongW", w.control(idSettings), ^uintptr(15))&0x10000000 != 0 ||
+						proc("GetWindowLongW", w.control(idCancelAccount), ^uintptr(15))&0x10000000 == 0 {
+						t.Fatal("the device dialog must use compact content and a navigation control", dpi)
+					}
+					for _, id := range []int{5, idBrowser, 6, idCopy, 12} {
+						var bounds rect
+						proc("GetWindowRect", w.control(id), uintptr(unsafe.Pointer(&bounds)))
+						proc("MapWindowPoints", 0, w.Handle, uintptr(unsafe.Pointer(&bounds)), 2)
+						if bounds.Left < int32(40*dpi/96) || bounds.Right > int32(360*dpi/96) ||
+							bounds.Top < int32(64*dpi/96) || bounds.Bottom > int32(192*dpi/96) {
+							t.Fatal("a device-card control violates its 16-point inner padding", dpi, id, bounds)
+						}
+					}
+				}
+				if dir := os.Getenv("KOBASHI_UI_CAPTURE_DIR"); dir != "" && dpi == 144 && (view == "connected" || view == "device") {
+					f, err := os.Create(filepath.Join(dir, fmt.Sprintf("%s-%s-%d-dpi.png", theme, view, dpi)))
+					if err != nil {
+						t.Fatal(err)
+					}
+					err = png.Encode(f, captureClient(t, w.Handle, windowWidth*dpi/96, w.contentHeight()*dpi/96))
+					closeErr := f.Close()
+					if err != nil || closeErr != nil {
+						t.Fatal(err, closeErr)
+					}
+				}
 			}
 		}
 	}

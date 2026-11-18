@@ -258,12 +258,11 @@ func (w *Window) build() error {
 		{"STATIC", "Access token", "token", 4, 60, 148, 280, 12, 0},
 		{"EDIT", "", "token", idToken, 73, 172, 254, 22, 0x10000 | 0x80 | 0x20},
 		{"BUTTON", "Not Connected", "token", idLogin, 60, 215, 280, 40, 0x10000 | 1},
-		{"STATIC", "Enter this code at GitHub", "device", 5, 53, 147, 294, 20, 1},
-		{"BUTTON", "Open GitHub", "device", idBrowser, 70, 174, 260, 24, 0x10000},
-		{"STATIC", "", "device", 6, 53, 206, 294, 42, 1},
-		{"BUTTON", "&Copy", "device", idCopy, 166, 253, 68, 24, 0x10000},
+		{"STATIC", "Enter this code at GitHub", "device", 5, 40, 64, 320, 18, 1},
+		{"BUTTON", "Open GitHub", "device", idBrowser, 40, 88, 320, 20, 0x10000},
+		{"STATIC", "", "device", 6, 40, 112, 232, 42, 1},
+		{"BUTTON", "&Copy", "device", idCopy, 288, 120, 72, 28, 0x10000},
 		{"STATIC", "", "connected", 7, 28, 8, 204, 24, 0},
-		{"BUTTON", "Connecte&d", "connected", idDisconnect, 236, 8, 76, 28, 0x10000},
 		{"BUTTON", "Accounts", "all", idAccounts, 312, 8, 28, 28, 0x10000},
 		{"BUTTON", "Cancel", "all", idCancelAccount, 32, 60, 76, 28, 0x10000},
 		{"STATIC", "", "connected", 8, 28, 42, 344, 16, 0},
@@ -477,12 +476,18 @@ func (w *Window) render() {
 		if (c.id == 1 || c.id == idSettings) && w.view == "settings" {
 			show = false
 		}
+		if c.id == idSettings && w.view == "device" {
+			show = false
+		}
+		if c.id == 9 && w.view == "settings" && (w.notice != "" || w.refreshError != "" || text(w.status["error"]) != "" || text(w.settings["error"]) != "") {
+			show = false
+		}
 		if c.id == idAccounts {
 			accounts, _ := w.status["accounts"].([]any)
 			show = w.view == "connected" || ((w.view == "idle" || w.view == "token") && !w.addingAccount && len(accounts) > 0)
 		}
 		if c.id == idCancelAccount {
-			show = w.addingAccount && w.view != "settings"
+			show = (w.addingAccount || w.view == "device") && w.view != "settings"
 		}
 		// || (c.view == "network" && (w.view == "client" || w.view == "server"))
 		if c.id == 8 {
@@ -491,6 +496,9 @@ func (w *Window) render() {
 		}
 		if c.id == 12 && w.view == "connected" {
 			show = w.notice != "" || w.refreshError != "" || text(w.status["error"]) != ""
+		}
+		if c.id == 12 && w.view == "settings" {
+			show = w.notice != "" || w.refreshError != "" || text(w.status["error"]) != "" || text(w.settings["error"]) != ""
 		}
 		if c.id == 1 && w.view == "connected" && (w.notice != "" || w.refreshError != "" || text(w.status["error"]) != "") {
 			show = false
@@ -1192,8 +1200,11 @@ func windowProc(hwnd uintptr, msg uint32, wp, lp uintptr) uintptr {
 					continue
 				}
 				saved, _, _ := gdi.NewProc("SaveDC").Call(wp)
-				gdi.NewProc("IntersectClipRect").Call(wp, uintptr(c.x*w.dpi/96), uintptr(c.y*w.dpi/96), uintptr((c.x+c.w)*w.dpi/96), uintptr((c.y+c.h)*w.dpi/96))
-				gdi.NewProc("SetViewportOrgEx").Call(wp, uintptr(c.x*w.dpi/96), uintptr(c.y*w.dpi/96), 0)
+				var bounds rect
+				proc("GetWindowRect", c.handle, uintptr(unsafe.Pointer(&bounds)))
+				proc("MapWindowPoints", 0, w.Handle, uintptr(unsafe.Pointer(&bounds)), 2)
+				gdi.NewProc("IntersectClipRect").Call(wp, uintptr(bounds.Left), uintptr(bounds.Top), uintptr(bounds.Right), uintptr(bounds.Bottom))
+				gdi.NewProc("SetViewportOrgEx").Call(wp, uintptr(bounds.Left), uintptr(bounds.Top), 0)
 				proc("SendMessageW", c.handle, 0x318, wp, 0)
 				gdi.NewProc("RestoreDC").Call(wp, saved)
 			}
