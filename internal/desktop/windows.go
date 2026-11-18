@@ -262,21 +262,21 @@ func (w *Window) build() error {
 		{"BUTTON", "Open GitHub", "device", idBrowser, 40, 88, 320, 20, 0x10000},
 		{"STATIC", "", "device", 6, 40, 112, 232, 42, 1},
 		{"BUTTON", "&Copy", "device", idCopy, 288, 120, 72, 28, 0x10000},
-		{"STATIC", "", "connected", 7, 28, 8, 204, 24, 0},
+		{"STATIC", "", "connected", 7, 28, 24, 204, 24, 0},
 		{"BUTTON", "Accounts", "all", idAccounts, 312, 8, 28, 28, 0x10000},
 		{"BUTTON", "Cancel", "all", idCancelAccount, 32, 60, 76, 28, 0x10000},
-		{"STATIC", "", "connected", 8, 28, 42, 344, 16, 0},
-		{"BUTTON", "&Codex", "connected", idCodex, 18, 109, 364, 44, 0x10000 | 3},
-		{"BUTTON", "C&laude Code", "connected", idClaude, 18, 153, 364, 44, 0x10000 | 3},
-		{"BUTTON", "GitHub Cop&ilot", "connected", idCopilot, 18, 197, 364, 44, 0x10000 | 3},
-		{"BUTTON", "Back", "settings", idSettingsBack, 16, 0, 32, 32, 0x10000},
-		{"STATIC", "Settings", "settings", 9, 48, 8, 328, 22, 0},
-		{"BUTTON", "&Start at login", "settings", idStartup, 16, 48, 368, 32, 0x10000 | 3},
-		{"BUTTON", "&Close to system tray", "settings", idTray, 16, 84, 368, 32, 0x10000 | 3},
-		{"STATIC", "&Appearance", "settings", idAppearanceLabel, 24, 131, 152, 18, 0},
-		{"COMBOBOX", "", "settings", idAppearance, 200, 124, 176, 32, 0x10000 | 0x200000 | 3},
-		{"STATIC", "&Language", "settings", idLanguageLabel, 24, 171, 152, 18, 0},
-		{"COMBOBOX", "", "settings", idLanguage, 200, 164, 176, 32, 0x10000 | 0x200000 | 3},
+		{"STATIC", "", "connected", 8, 28, 58, 344, 16, 0},
+		{"BUTTON", "&Codex", "connected", idCodex, 18, 118, 364, 44, 0x10000 | 3},
+		{"BUTTON", "C&laude Code", "connected", idClaude, 18, 162, 364, 44, 0x10000 | 3},
+		{"BUTTON", "GitHub Cop&ilot", "connected", idCopilot, 18, 206, 364, 44, 0x10000 | 3},
+		{"BUTTON", "Back", "settings", idSettingsBack, 16, 16, 32, 32, 0x10000},
+		{"STATIC", "Settings", "settings", 9, 48, 24, 328, 22, 0},
+		{"BUTTON", "&Start at login", "settings", idStartup, 16, 64, 368, 32, 0x10000 | 3},
+		{"BUTTON", "&Close to system tray", "settings", idTray, 16, 100, 368, 32, 0x10000 | 3},
+		{"STATIC", "&Appearance", "settings", idAppearanceLabel, 24, 147, 152, 18, 0},
+		{"COMBOBOX", "", "settings", idAppearance, 200, 140, 176, 32, 0x10000 | 0x200000 | 3},
+		{"STATIC", "&Language", "settings", idLanguageLabel, 24, 187, 152, 18, 0},
+		{"COMBOBOX", "", "settings", idLanguage, 200, 180, 176, 32, 0x10000 | 0x200000 | 3},
 		/*
 			{"BUTTON", "Connect to &Server", "settings", idClientView, 32, 294, 164, 28, 0x10000},
 			{"BUTTON", "Share this &ModelBridge", "settings", idServerView, 204, 294, 164, 28, 0x10000},
@@ -461,6 +461,11 @@ func (w *Window) refresh() {
 }
 func (w *Window) render() {
 	w.localize()
+	cancelTitle := "Cancel"
+	if w.view == "idle" && w.addingAccount {
+		cancelTitle = "Back"
+	}
+	w.setText(idCancelAccount, w.tr(cancelTitle))
 	w.layout()
 	var client rect
 	proc("GetClientRect", w.Handle, uintptr(unsafe.Pointer(&client)))

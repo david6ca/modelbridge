@@ -3,6 +3,7 @@
 package desktop
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"image"
@@ -66,6 +67,23 @@ func captureClient(t *testing.T, hwnd uintptr, width, height int) *image.NRGBA {
 		im.Pix[i], im.Pix[i+2], im.Pix[i+3] = im.Pix[i+2], im.Pix[i], 255
 	}
 	return im
+}
+
+func visibleInkBounds(im *image.NRGBA, region image.Rectangle, background color.NRGBA) image.Rectangle {
+	var bounds image.Rectangle
+	for y := region.Min.Y; y < region.Max.Y; y++ {
+		for x := region.Min.X; x < region.Max.X; x++ {
+			if im.NRGBAAt(x, y) != background {
+				pixel := image.Rect(x, y, x+1, y+1)
+				if bounds.Empty() {
+					bounds = pixel
+				} else {
+					bounds = bounds.Union(pixel)
+				}
+			}
+		}
+	}
+	return bounds
 }
 
 func TestNativeAppearanceMatchesExistingInterface(t *testing.T) {
@@ -301,11 +319,39 @@ func TestNativeAppearanceMatchesExistingInterface(t *testing.T) {
 		if !w.addingAccount || w.view != "idle" || w.status["connected"] != true {
 			t.Fatal("polling interrupted Add account or disconnected the current account")
 		}
+		buffer := make([]uint16, 32)
+		proc("GetWindowTextW", w.control(idCancelAccount), uintptr(unsafe.Pointer(&buffer[0])), uintptr(len(buffer)))
+		if syscall.UTF16ToString(buffer) != "Back" {
+			t.Fatal("the account connection page needs an accessible Back control")
+		}
+		back := captureClient(t, w.control(idCancelAccount), 32, 32)
+		reference := captureClient(t, w.control(idSettingsBack), 32, 32)
+		if !bytes.Equal(back.Pix, reference.Pix) {
+			t.Fatal("the account connection page must use the same back arrow as Settings")
+		}
+		if dir := os.Getenv("KOBASHI_UI_CAPTURE_DIR"); dir != "" {
+			f, err := os.Create(filepath.Join(dir, "light-add-account.png"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			err = png.Encode(f, captureClient(t, w.Handle, windowWidth, w.contentHeight()))
+			closeErr := f.Close()
+			if err != nil || closeErr != nil {
+				t.Fatal(err, closeErr)
+			}
+		}
 		w.setText(idToken, "private-test-input")
+		w.command(idTokenView)
+		proc("GetWindowTextW", w.control(idCancelAccount), uintptr(unsafe.Pointer(&buffer[0])), uintptr(len(buffer)))
+		if syscall.UTF16ToString(buffer) != "Cancel" {
+			t.Fatal("the account connection page changed another authentication Cancel control")
+		}
+		w.view = "idle"
+		w.render()
 		w.command(idCancelAccount)
 		if w.addingAccount || w.view != "connected" || w.tokenValue() != "" ||
 			proc("GetFocus") != w.control(idAccounts) {
-			t.Fatal("Cancel must retain the connection, clear token input, and restore focus")
+			t.Fatal("Back must retain the connection, clear token input, and restore focus")
 		}
 		w.status["connected"] = false
 		w.view = "token"
@@ -456,11 +502,11 @@ func TestNativeAppearanceMatchesExistingInterface(t *testing.T) {
 		t.Helper()
 		var client rect
 		proc("GetClientRect", w.Handle, uintptr(unsafe.Pointer(&client)))
-		if client.Right != int32(windowWidth*w.dpi/96) || client.Bottom != int32(259*w.dpi/96) {
-			t.Fatalf("connected/%d DPI does not use the compact macOS content size: %v", w.dpi, client)
+		if client.Right != int32(windowWidth*w.dpi/96) || client.Bottom != int32(268*w.dpi/96) {
+			t.Fatalf("connected/%d DPI does not preserve the padded content size: %v", w.dpi, client)
 		}
-		for id, y := range map[int]int{7: 8, 8: 42, idAccounts: 2, idCodex: 109, idClaude: 153,
-			idCopilot: 197} {
+		for id, y := range map[int]int{7: 24, 8: 58, idAccounts: 20, idCodex: 118, idClaude: 162,
+			idCopilot: 206} {
 			var bounds rect
 			proc("GetWindowRect", w.control(id), uintptr(unsafe.Pointer(&bounds)))
 			proc("MapWindowPoints", 0, w.Handle, uintptr(unsafe.Pointer(&bounds)), 2)
@@ -484,13 +530,13 @@ func TestNativeAppearanceMatchesExistingInterface(t *testing.T) {
 		var noticeBounds rect
 		proc("GetWindowRect", w.control(12), uintptr(unsafe.Pointer(&noticeBounds)))
 		proc("MapWindowPoints", 0, w.Handle, uintptr(unsafe.Pointer(&noticeBounds)), 2)
-		if noticeBounds != (rect{int32(28 * w.dpi / 96), int32(42 * w.dpi / 96),
-			int32(372 * w.dpi / 96), int32(74 * w.dpi / 96)}) {
+		if noticeBounds != (rect{int32(28 * w.dpi / 96), int32(58 * w.dpi / 96),
+			int32(372 * w.dpi / 96), int32(90 * w.dpi / 96)}) {
 			t.Fatal("connected error must fit in the usage slot", noticeBounds)
 		}
 		screenshot := captureClient(t, w.Handle, int(client.Right), int(client.Bottom))
 		gearPixels := 0
-		for y := 16 * w.dpi / 96; y < 32*w.dpi/96; y++ {
+		for y := 28 * w.dpi / 96; y < 44*w.dpi/96; y++ {
 			for x := 352 * w.dpi / 96; x < 368*w.dpi/96; x++ {
 				if got := screenshot.NRGBAAt(x, y); got.R != 0 || got.G != 0 || got.B != 0 {
 					gearPixels++
@@ -499,6 +545,19 @@ func TestNativeAppearanceMatchesExistingInterface(t *testing.T) {
 		}
 		if !w.highContrast && gearPixels == 0 {
 			t.Fatal("the Settings glyph is missing from the connected header", w.dpi)
+		}
+		if !w.highContrast {
+			headerBottom := 100 * w.dpi / 96
+			ink := visibleInkBounds(screenshot, image.Rect(0, 0, screenshot.Bounds().Max.X, headerBottom), color.NRGBA{A: 255})
+			if ink.Empty() || ink.Min.Y < 24*w.dpi/96 {
+				t.Fatal("visible account content is too close to the native client-area top", w.dpi, ink)
+			}
+			_, _, usageVisible := w.usage()
+			if usageVisible && !noticeVisible {
+				if difference := ink.Min.Y - (headerBottom - ink.Max.Y); difference < -3*w.dpi/96 || difference > 3*w.dpi/96 {
+					t.Fatal("the account card has inconsistent visible top and bottom padding", w.dpi, ink, headerBottom)
+				}
+			}
 		}
 		pixel := func(x, y int) color.NRGBA {
 			return screenshot.NRGBAAt(x*w.dpi/96, y*w.dpi/96)
@@ -509,7 +568,7 @@ func TestNativeAppearanceMatchesExistingInterface(t *testing.T) {
 		if !w.highContrast && pixel(5, 5) != rgb(0) {
 			t.Fatal("connected account region must use a solid black background")
 		}
-		for _, y := range []int{91, 131, 153, 175, 197, 219, 258} {
+		for _, y := range []int{100, 140, 162, 184, 206, 228, 267} {
 			if pixel(0, y) != rgb(w.palette.panel) || pixel(399, y) != rgb(w.palette.panel) ||
 				pixel(200, y) != rgb(w.palette.panel) {
 				t.Fatalf("connected/%d DPI must use one edge-to-edge client surface at row %d", w.dpi, y)
@@ -609,11 +668,11 @@ func TestNativeAppearanceMatchesExistingInterface(t *testing.T) {
 	}
 	for id, want := range map[int]rect{
 		idSettings: {344, 8, 376, 40},
-		idCodex:    {18, 109, 382, 153}, idClaude: {18, 153, 382, 197},
-		idCopilot: {18, 197, 382, 241},
-		idStartup: {16, 48, 384, 80}, idTray: {16, 84, 384, 116},
-		idAppearanceLabel: {24, 131, 176, 149},
-		idSettingsBack:    {16, 0, 48, 32},
+		idCodex:    {18, 118, 382, 162}, idClaude: {18, 162, 382, 206},
+		idCopilot: {18, 206, 382, 250},
+		idStartup: {16, 64, 384, 96}, idTray: {16, 100, 384, 132},
+		idAppearanceLabel: {24, 147, 176, 165},
+		idSettingsBack:    {16, 16, 48, 48},
 	} {
 		var got rect
 		proc("GetWindowRect", w.control(id), uintptr(unsafe.Pointer(&got)))
@@ -776,7 +835,7 @@ func TestNativeAppearanceMatchesExistingInterface(t *testing.T) {
 				t.Fatal("switching to Settings moved the window's top edge", theme, dpi)
 			}
 			proc("GetClientRect", w.Handle, uintptr(unsafe.Pointer(&client)))
-			if int(client.Right) != windowWidth*dpi/96 || int(client.Bottom) != 220*dpi/96 {
+			if int(client.Right) != windowWidth*dpi/96 || int(client.Bottom) != 236*dpi/96 {
 				t.Fatalf("%s/%d DPI changed the Settings window size: %v", theme, dpi, client)
 			}
 			settingsImage := captureClient(t, w.Handle, int(client.Right), int(client.Bottom))
@@ -790,7 +849,7 @@ func TestNativeAppearanceMatchesExistingInterface(t *testing.T) {
 			proc("GetWindowRect", w.control(idAppearance), uintptr(unsafe.Pointer(&appearanceBounds)))
 			proc("MapWindowPoints", 0, w.Handle, uintptr(unsafe.Pointer(&appearanceBounds)), 2)
 			if appearanceBounds.Left < int32(200*dpi/96) || appearanceBounds.Right > int32(376*dpi/96) ||
-				appearanceBounds.Top < int32(124*dpi/96) || appearanceBounds.Bottom > int32(164*dpi/96) {
+				appearanceBounds.Top < int32(140*dpi/96) || appearanceBounds.Bottom > int32(180*dpi/96) {
 				t.Fatal("native Appearance selector overlaps other Settings controls", theme, dpi, appearanceBounds)
 			}
 			for _, row := range []struct{ label, selector int }{{idAppearanceLabel, idAppearance}, {idLanguageLabel, idLanguage}} {
@@ -815,7 +874,19 @@ func TestNativeAppearanceMatchesExistingInterface(t *testing.T) {
 			}
 			background := color.NRGBA{R: byte(w.palette.background >> 16), G: byte(w.palette.background >> 8),
 				B: byte(w.palette.background), A: 255}
-			for y := 40; y < 220; y++ {
+			titleInk := visibleInkBounds(settingsImage, image.Rect(48*dpi/96, 0, 180*dpi/96, 56*dpi/96), background)
+			startupInk := visibleInkBounds(settingsImage, image.Rect(24*dpi/96, 64*dpi/96, 376*dpi/96, 96*dpi/96), background)
+			if titleInk.Empty() || startupInk.Empty() || titleInk.Min.Y < 24*dpi/96 ||
+				startupInk.Min.Y-titleInk.Max.Y < 24*dpi/96 {
+				t.Fatal("Settings needs visible top padding and separation before its first row", dpi, titleInk, startupInk)
+			}
+			var lastRow rect
+			proc("GetWindowRect", w.control(idLanguage), uintptr(unsafe.Pointer(&lastRow)))
+			proc("MapWindowPoints", 0, w.Handle, uintptr(unsafe.Pointer(&lastRow)), 2)
+			if client.Bottom-lastRow.Bottom < int32(24*dpi/96) {
+				t.Fatal("adding top padding crowded the last Settings row", dpi, lastRow, client)
+			}
+			for y := 56; y < 236; y++ {
 				if settingsImage.NRGBAAt(0, y*dpi/96) != background {
 					t.Fatalf("%s/%d DPI still draws a Settings panel border", theme, dpi)
 				}

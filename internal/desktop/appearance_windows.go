@@ -86,10 +86,12 @@ func credits(value float64) string {
 
 func (w *Window) contentHeight() int {
 	switch w.view {
-	case "connected", "idle", "starting":
+	case "connected":
+		return 268
+	case "idle", "starting":
 		return 259
 	case "settings":
-		return 220
+		return 236
 	case "device":
 		return 232
 	}
@@ -148,19 +150,23 @@ func (w *Window) layout() {
 		}
 		c.y = c.baseY
 		if c.id == idAccounts {
-			c.x, c.y, c.w = 340-accountWidth, 2, accountWidth
+			c.x, c.y, c.w, c.h = 340-accountWidth, 20, accountWidth, 32
 			if w.view != "connected" {
-				c.x, c.y, c.w = 140, 52, 120
+				c.x, c.y, c.w, c.h = 140, 52, 120, 28
 				if w.view == "token" {
 					c.y = 60
 				}
 			}
 		} else if c.id == 7 {
 			c.w = min(204, 340-accountWidth-8-c.x)
+		} else if c.id == idSettings && w.view == "connected" {
+			c.y = 20
 		} else if c.id == idCancelAccount {
 			c.x, c.y, c.w, c.h = 32, 60, 76, 28
 			if w.view == "device" {
 				c.x, c.y, c.w, c.h = 16, 0, 32, 32
+			} else if w.view == "idle" && w.addingAccount {
+				c.x, c.y, c.w, c.h = 16, 8, 32, 32
 			}
 		} else if c.id == idConnect {
 			c.y = 100
@@ -176,9 +182,9 @@ func (w *Window) layout() {
 			case "idle":
 				c.y, c.h = 191, 44
 			case "connected":
-				c.x, c.y, c.h, c.w = 28, 42, 32, 344
+				c.x, c.y, c.h, c.w = 28, 58, 32, 344
 			case "settings":
-				c.x, c.y, c.w, c.h = 48, 8, 328, 32
+				c.x, c.y, c.w, c.h = 48, 24, 328, 32
 			// case "client", "server":
 			// 	c.y, c.h = 280, 42
 			case "token":
@@ -392,8 +398,8 @@ func (w *Window) paintWindow(dc uintptr) {
 			if w.highContrast {
 				header = c.background
 			}
-			p.fill(0, 0, windowWidth, 91, header)
-			p.fill(0, 91, windowWidth, w.contentHeight()-91, c.panel)
+			p.fill(0, 0, windowWidth, 100, header)
+			p.fill(0, 100, windowWidth, w.contentHeight()-100, c.panel)
 		case "device":
 			p.round(24, 48, 352, 160, 12, c.input, c.border)
 		case "token":
@@ -431,7 +437,7 @@ func (w *Window) paintControl(c control, dc uintptr) {
 	w.buffered(dc, c.w, c.h, func(p painter) {
 		colors := w.palette
 		bg := colors.background
-		if w.view == "connected" && c.y < 91 && !w.highContrast {
+		if w.view == "connected" && c.y < 100 && !w.highContrast {
 			header := themePalette(true, false)
 			colors.text, colors.muted, colors.hover = header.text, header.muted, header.hover
 			colors.connected, colors.danger, colors.accent = header.connected, header.danger, header.accent
@@ -459,9 +465,9 @@ func (w *Window) paintControl(c control, dc uintptr) {
 				if c.hover {
 					p.round(0, 0, c.w, c.h, 5, colors.hover, colors.hover)
 				}
-				p.text(w.tr("Connected"), 2, 6, c.w-28, 22, w.small, colors.connected, 0x26)
-				p.line(c.w-19, 12, c.w-14, 17, 1, colors.muted)
-				p.line(c.w-14, 17, c.w-9, 12, 1, colors.muted)
+				p.text(w.tr("Connected"), 2, 0, c.w-28, c.h, w.small, colors.connected, 0x26)
+				p.line(c.w-19, 13, c.w-14, 18, 1, colors.muted)
+				p.line(c.w-14, 18, c.w-9, 13, 1, colors.muted)
 			} else {
 				p.text(title, 0, 0, c.w, c.h, w.small, colors.accent, 0x825)
 			}
@@ -548,7 +554,7 @@ func (w *Window) paintControl(c control, dc uintptr) {
 			p.line(19, 9, 12, 16, 2, colors.muted)
 			p.line(12, 16, 19, 23, 2, colors.muted)
 		case idCancelAccount:
-			if w.view == "device" {
+			if w.view == "device" || (w.view == "idle" && w.addingAccount) {
 				p.line(19, 9, 12, 16, 2, colors.muted)
 				p.line(12, 16, 19, 23, 2, colors.muted)
 			} else {

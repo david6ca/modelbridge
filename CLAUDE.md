@@ -57,8 +57,10 @@ styling. Account information has no border. Native chrome does not mirror in RTL
 The account popover, Settings, and privacy window also use native materials,
 respecting Reduce Transparency and Increase Contrast. Privacy Statement is
 only in the macOS app menu. Main-screen errors temporarily replace usage details
-without moving account information or toggles. Windows shares the compact main
-and Settings geometry, retaining its native titlebar and Win32 controls.
+without moving account information or toggles. Windows retains its native
+titlebar and Win32 controls, with 400×268 connected content and 400×236 Settings.
+Its account card has 28-point visible insets on all sides; Settings starts its
+heading at y=24 rather than reusing the macOS toolbar-adjacent y=8.
 Mouse selection has no thick row border; keyboard focus remains visible around
 the relevant control.
 Settings has no quit link; keep quitting available through the tray/menu bar.
