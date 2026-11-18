@@ -20,6 +20,9 @@ identifier and startup registration keys also retain their existing values, so
 the rename does not create a second set of preferences or providers. When
 replacing an older installation, keep only the renamed app at its installed
 location and update an enabled login item's app path without launching both.
+On Windows, a running legacy app is detected without redirecting ModelBridge
+to its old window. Quit the legacy app from its tray menu yourself, then open
+ModelBridge; the upgrade never stops your active connection automatically.
 
 > **macOS first launch — "unidentified developer" warning**  
 > ModelBridge isn't signed with an Apple Developer ID ($99/yr — not worth it for a free tool), so macOS Gatekeeper blocks the first launch. Drag `ModelBridge.app` to `/Applications`, then run this **once** in Terminal to remove the quarantine flag:

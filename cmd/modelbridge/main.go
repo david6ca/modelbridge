@@ -38,8 +38,15 @@ func main() {
 		fmt.Fprintln(os.Stderr, "invalid port offset")
 		os.Exit(1)
 	}
-	if runtime.GOOS == "windows" && !*headless && *offset == 0 && *home == "" && desktop.FocusExisting() {
-		return
+	if runtime.GOOS == "windows" && !*headless && *offset == 0 && *home == "" {
+		existing, err := desktop.FocusExisting()
+		if err != nil {
+			desktop.ShowError(err.Error())
+			os.Exit(1)
+		}
+		if existing {
+			return
+		}
 	}
 	if *home == "" {
 		var err error

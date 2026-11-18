@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"syscall"
 	"testing"
@@ -16,6 +17,36 @@ import (
 
 	"github.com/david6ca/modelbridge/internal/bridge"
 )
+
+func TestExistingWindowBranding(t *testing.T) {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+	for _, name := range []string{"Kobashi", "Kobashi2", "ModelBridge"} {
+		func() {
+			h := proc("CreateWindowExW", 0, uintptr(unsafe.Pointer(wide("STATIC"))),
+				uintptr(unsafe.Pointer(wide(name))), 0, 0, 0, 1, 1, 0, 0, 0, 0)
+			if h == 0 {
+				t.Fatal("could not create isolated existing-window fixture")
+			}
+			defer proc("DestroyWindow", h)
+			err := checkExistingWindow(h)
+			if name == "ModelBridge" {
+				if err != nil {
+					t.Fatal("current instance was rejected", err)
+				}
+			} else if err == nil || !strings.Contains(err.Error(), name) ||
+				!strings.Contains(err.Error(), "tray menu, then open ModelBridge") {
+				t.Fatal("legacy instance was accepted without an actionable error", name, err)
+			}
+			if proc("IsWindow", h) == 0 || proc("IsWindowVisible", h) != 0 {
+				t.Fatal("checking an existing instance changed its window")
+			}
+		}()
+	}
+	if err := checkExistingWindow(0); err == nil {
+		t.Fatal("an unidentified instance was accepted")
+	}
+}
 
 func freePort(t *testing.T) int {
 	t.Helper()

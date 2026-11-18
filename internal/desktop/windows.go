@@ -175,14 +175,27 @@ func wide(value string) *uint16 { p, _ := syscall.UTF16PtrFromString(value); ret
 func ShowError(message string) {
 	proc("MessageBoxW", 0, uintptr(unsafe.Pointer(wide(message))), uintptr(unsafe.Pointer(wide("ModelBridge"))), 0x10)
 }
-func FocusExisting() bool {
+func checkExistingWindow(h uintptr) error {
+	var title [256]uint16
+	if proc("GetWindowTextW", h, uintptr(unsafe.Pointer(&title[0])), uintptr(len(title))) == 0 {
+		return errors.New("could not identify the running bridge; quit it from its tray menu, then open ModelBridge")
+	}
+	if name := syscall.UTF16ToString(title[:]); name != "ModelBridge" {
+		return fmt.Errorf("%s is already running. Quit it from its tray menu, then open ModelBridge.", name)
+	}
+	return nil
+}
+func FocusExisting() (bool, error) {
 	h := proc("FindWindowW", uintptr(unsafe.Pointer(wide("KobashiNativeWindow"))), 0)
 	if h == 0 {
-		return false
+		return false, nil
+	}
+	if err := checkExistingWindow(h); err != nil {
+		return true, err
 	}
 	proc("ShowWindow", h, 9)
 	proc("SetForegroundWindow", h)
-	return true
+	return true, nil
 }
 func OpenURL(address string) error {
 	if !strings.HasPrefix(address, "https://") {
