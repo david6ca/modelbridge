@@ -2,6 +2,9 @@ package main
 
 import (
 	"bytes"
+	"debug/pe"
+	"encoding/binary"
+	"encoding/xml"
 	"errors"
 	"os"
 	"path/filepath"
@@ -9,6 +12,85 @@ import (
 	"testing"
 	"unicode/utf16"
 )
+
+func TestWindowsManifestVersion(t *testing.T) {
+	icon, err := os.ReadFile(filepath.Join("..", "..", "assets", "kobashi-icon.ico"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tt := range []struct{ version, want string }{
+		{"1", "1.0.0.0"},
+		{"1.0", "1.0.0.0"},
+		{"2.1.7", "2.1.7.0"},
+		{"1.2.3.4", "1.2.3.4"},
+		{"65535.0.65535.0", "65535.0.65535.0"},
+	} {
+		t.Run(tt.version, func(t *testing.T) {
+			path := filepath.Join(t.TempDir(), "resources.syso")
+			if err := writeWindowsResources(path, icon, tt.version); err != nil {
+				t.Fatal(err)
+			}
+			file, err := pe.Open(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer file.Close()
+			section := file.Section(".rsrc")
+			if section == nil {
+				t.Fatal("missing resource section")
+			}
+			data, err := section.Data()
+			if err != nil {
+				t.Fatal(err)
+			}
+			read32 := func(offset uint32) uint32 {
+				return binary.LittleEndian.Uint32(data[offset:])
+			}
+			count := int(binary.LittleEndian.Uint16(data[14:]))
+			for i := 0; i < count; i++ {
+				entry := uint32(16 + i*8)
+				if read32(entry) != 24 {
+					continue
+				}
+				directory := read32(entry+4) & 0x7fffffff
+				directory = read32(directory+20) & 0x7fffffff
+				resource := read32(directory + 20)
+				offset, size := read32(resource), read32(resource+4)
+				var manifest struct {
+					Identity struct {
+						Version string `xml:"version,attr"`
+					} `xml:"assemblyIdentity"`
+				}
+				if err := xml.Unmarshal(data[offset:offset+size], &manifest); err != nil {
+					t.Fatal(err)
+				}
+				if manifest.Identity.Version != tt.want {
+					t.Fatalf("assembly version = %q, want %q", manifest.Identity.Version, tt.want)
+				}
+				return
+			}
+			t.Fatal("missing application manifest")
+		})
+	}
+}
+
+func TestWindowsResourcesRejectInvalidVersion(t *testing.T) {
+	icon, err := os.ReadFile(filepath.Join("..", "..", "assets", "kobashi-icon.ico"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, version := range []string{"", "1..0", "-1.0", "1.0-beta", "65536.0", "1.2.3.4.5"} {
+		t.Run(version, func(t *testing.T) {
+			path := filepath.Join(t.TempDir(), "resources.syso")
+			if err := writeWindowsResources(path, icon, version); err == nil {
+				t.Fatal("invalid Windows version accepted")
+			}
+			if _, err := os.Stat(path); !os.IsNotExist(err) {
+				t.Fatal("resource output created for invalid version", err)
+			}
+		})
+	}
+}
 
 func TestWindowsVersionResourceUsesAppName(t *testing.T) {
 	encoded := func(value string) []byte {

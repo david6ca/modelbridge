@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"os"
 	"strconv"
 	"strings"
@@ -72,6 +73,18 @@ func versionResource(version string) []byte {
 	return versionBlock("VS_VERSION_INFO", fixed, 52, false, stringsBlock, varBlock)
 }
 func writeWindowsResources(path string, ico []byte, version string) error {
+	parts := strings.Split(version, ".")
+	if len(parts) > 4 {
+		return fmt.Errorf("invalid Windows version %q: expected at most four numeric components", version)
+	}
+	manifestVersion := [4]string{"0", "0", "0", "0"}
+	for i, part := range parts {
+		n, err := strconv.ParseUint(part, 10, 16)
+		if err != nil {
+			return fmt.Errorf("invalid Windows version %q: %w", version, err)
+		}
+		manifestVersion[i] = strconv.FormatUint(n, 10)
+	}
 	if len(ico) < 6 {
 		return errors.New("missing Windows icon")
 	}
@@ -94,7 +107,7 @@ func writeWindowsResources(path string, ico []byte, version string) error {
 	}
 	manifest := []byte(`<?xml version="1.0" encoding="UTF-8"?>
 <assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
-<assemblyIdentity type="win32" name="com.xjin6.kobashi" version="` + version + `.0"/>
+<assemblyIdentity type="win32" name="com.xjin6.kobashi" version="` + strings.Join(manifestVersion[:], ".") + `"/>
 <dependency><dependentAssembly><assemblyIdentity type="win32" name="Microsoft.Windows.Common-Controls" version="6.0.0.0" processorArchitecture="amd64" publicKeyToken="6595b64144ccf1df" language="*"/></dependentAssembly></dependency>
 </assembly>`)
 	resources = append(resources, resource{14, 1, group}, resource{16, 1, versionResource(version)}, resource{24, 1, manifest})

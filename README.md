@@ -574,6 +574,8 @@ The app version comes only from `package.json`, which contains product metadata,
 and is embedded in the binaries
 and platform metadata without modifying source files. macOS packaging builds
 both Apple Silicon and Intel bridge binaries and a universal Cocoa executable.
+Windows assembly manifests pad the version to four numeric components
+(for example, `1.0` becomes `1.0.0.0`); each component must be between 0 and 65535.
 
 After a successful build, only `dist/ModelBridge.app` (macOS) or `dist/ModelBridge.exe`
 (Windows) and `dist/SHA256SUMS.txt` are published back to the checkout. The existing
