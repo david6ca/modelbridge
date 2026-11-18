@@ -6,7 +6,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/david6ca/Kobashi2/internal/localization"
+	"github.com/david6ca/modelbridge/internal/localization"
 )
 
 func TestLanguagePersistsWithoutChangingAccountsOrSettings(t *testing.T) {

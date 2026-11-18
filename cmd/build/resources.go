@@ -107,7 +107,7 @@ func writeWindowsResources(path string, ico []byte, version string) error {
 	}
 	manifest := []byte(`<?xml version="1.0" encoding="UTF-8"?>
 <assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
-<assemblyIdentity type="win32" name="com.xjin6.kobashi" version="` + strings.Join(manifestVersion[:], ".") + `"/>
+<assemblyIdentity type="win32" name="com.pomegram.modelbridge" version="` + strings.Join(manifestVersion[:], ".") + `"/>
 <dependency><dependentAssembly><assemblyIdentity type="win32" name="Microsoft.Windows.Common-Controls" version="6.0.0.0" processorArchitecture="amd64" publicKeyToken="6595b64144ccf1df" language="*"/></dependentAssembly></dependency>
 </assembly>`)
 	resources = append(resources, resource{14, 1, group}, resource{16, 1, versionResource(version)}, resource{24, 1, manifest})

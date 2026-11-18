@@ -90,7 +90,7 @@ func TestNativeAppearanceMatchesExistingInterface(t *testing.T) {
 	active = w
 	defer func() { active = nil }()
 	w.fonts()
-	class := windowClass{Procedure: syscall.NewCallback(windowProc), Name: wide("KobashiAppearanceTest")}
+	class := windowClass{Procedure: syscall.NewCallback(windowProc), Name: wide("ModelBridgeAppearanceTest")}
 	class.Size = uint32(unsafe.Sizeof(class))
 	if proc("RegisterClassExW", uintptr(unsafe.Pointer(&class))) == 0 {
 		t.Fatal("could not register isolated UI test class")
@@ -115,7 +115,8 @@ func TestNativeAppearanceMatchesExistingInterface(t *testing.T) {
 			t.Fatal("native branding must use ModelBridge", c.id, c.title)
 		}
 	}
-	t.Run("appearance choices and automatic mode", func(t *testing.T) {
+	// Keep native calls on the window's creating thread; t.Run uses another goroutine.
+	func() {
 		if w.control(idTheme) != 0 || w.control(10) != 0 || w.control(11) != 0 {
 			t.Fatal("header theme control or removed descriptions are still present")
 		}
@@ -145,8 +146,8 @@ func TestNativeAppearanceMatchesExistingInterface(t *testing.T) {
 		if proc("IsWindowVisible", selector) != 0 || proc("IsWindowVisible", w.control(idAppearanceLabel)) != 0 {
 			t.Fatal("Appearance must only appear in Settings")
 		}
-	})
-	t.Run("startup and polling recovery", func(t *testing.T) {
+	}()
+	func() {
 		originalStatus, originalSettings, originalView := w.status, w.settings, w.view
 		defer func() {
 			w.status, w.settings, w.view = originalStatus, originalSettings, originalView
@@ -213,8 +214,8 @@ func TestNativeAppearanceMatchesExistingInterface(t *testing.T) {
 		if w.view != "starting" {
 			t.Fatal("Done offered sign-in before initialization completed")
 		}
-	})
-	t.Run("accounts popup and add cancellation", func(t *testing.T) {
+	}()
+	func() {
 		originalStatus, originalView := w.status, w.view
 		defer func() {
 			w.closeAccounts()
@@ -229,7 +230,7 @@ func TestNativeAppearanceMatchesExistingInterface(t *testing.T) {
 		w.view = "connected"
 		w.busy = true
 		w.render()
-		if proc("IsWindowEnabled", w.control(idAccounts)) == 0 {
+		if proc("IsWindowEnabled", w.control(idAccounts)) == 0 || proc("IsWindowEnabled", w.control(idDisconnect)) == 0 {
 			t.Fatal("a pending bridge action must not block opening the saved account list")
 		}
 		count := len(w.controls)
@@ -237,7 +238,7 @@ func TestNativeAppearanceMatchesExistingInterface(t *testing.T) {
 			t.Fatal(err)
 		}
 		if len(w.popupAccounts) != 12 || w.accountPopup == 0 || w.accountList == 0 ||
-			len(w.controls) != count+25 {
+			len(w.controls) != count+26 || w.control(idAccountDisconnect) == 0 {
 			t.Fatal("popup does not expose every account with separate switch/remove buttons")
 		}
 		if proc("IsWindowEnabled", w.control(accountControlBase)) != 0 ||
@@ -278,6 +279,16 @@ func TestNativeAppearanceMatchesExistingInterface(t *testing.T) {
 			proc("GetFocus") != w.control(idAccounts) || len(w.controls) != count {
 			t.Fatal("Escape must remove popup controls and restore trigger focus")
 		}
+		w.command(idDisconnect)
+		if w.accountPopup == 0 || w.busy {
+			t.Fatal("Connected must open the account menu without disconnecting")
+		}
+		proc("SetFocus", w.control(idAddAccount))
+		if !w.accountKey(message{Message: 0x100, WParam: 9}) ||
+			proc("GetFocus") != w.control(idAccountDisconnect) {
+			t.Fatal("Disconnect is not keyboard-accessible in the account menu")
+		}
+		w.closeAccounts()
 		w.command(idAddAccount)
 		w.accept(event{path: "refresh", value: w.status})
 		if !w.addingAccount || w.view != "idle" || w.status["connected"] != true {
@@ -295,7 +306,7 @@ func TestNativeAppearanceMatchesExistingInterface(t *testing.T) {
 		if proc("GetWindowLongW", w.control(idAccounts), ^uintptr(15))&0x10000000 == 0 {
 			t.Fatal("saved accounts are unreachable after token-based disconnect")
 		}
-	})
+	}()
 	for id, want := range map[int]string{idCodex: "Codex", idClaude: "Claude Code", idCopilot: "GitHub Copilot"} {
 		for _, c := range w.controls {
 			if c.id == id && strings.ReplaceAll(c.title, "&", "") != want {
@@ -341,6 +352,9 @@ func TestNativeAppearanceMatchesExistingInterface(t *testing.T) {
 	w.verification = "https://github.com/login/device"
 	assertStatus := func(id int, want string, rgb uint32) {
 		t.Helper()
+		if id == idDisconnect && !w.highContrast {
+			rgb = themePalette(true, false).connected
+		}
 		h := w.control(id)
 		if proc("GetWindowLongW", h, ^uintptr(15))&0x10000 == 0 {
 			t.Fatal("connection status lost keyboard focusability", id)
@@ -370,10 +384,15 @@ func TestNativeAppearanceMatchesExistingInterface(t *testing.T) {
 			hover := captureClient(t, h, width, height)
 			w.controls[i].hover = false
 			want := w.palette.button
+			sample := 10
 			if id == idDisconnect {
-				want = w.palette.panel
+				want = themePalette(true, false).hover
+				if w.highContrast {
+					want = w.palette.hover
+				}
+				sample = 5
 			}
-			if hover.NRGBAAt(10*w.dpi/96, 10*w.dpi/96) != pixel(want) {
+			if hover.NRGBAAt(sample*w.dpi/96, sample*w.dpi/96) != pixel(want) {
 				t.Fatal("connection hover must preserve the contrast-safe background and semantic text color", id, w.dpi)
 			}
 		}
@@ -387,6 +406,9 @@ func TestNativeAppearanceMatchesExistingInterface(t *testing.T) {
 		}
 		if colored < 4 {
 			t.Fatal("connection status is not rendered in its state color", id, w.dpi, rgb)
+		}
+		if id == idDisconnect {
+			return
 		}
 		border := pixel(w.palette.border)
 		for side, at := range []func(int) color.NRGBA{
@@ -427,11 +449,11 @@ func TestNativeAppearanceMatchesExistingInterface(t *testing.T) {
 		t.Helper()
 		var client rect
 		proc("GetClientRect", w.Handle, uintptr(unsafe.Pointer(&client)))
-		if client.Right != int32(windowWidth*w.dpi/96) || client.Bottom != int32(windowHeight*w.dpi/96) {
-			t.Fatalf("connected/%d DPI does not share the fixed Settings size: %v", w.dpi, client)
+		if client.Right != int32(windowWidth*w.dpi/96) || client.Bottom != int32(259*w.dpi/96) {
+			t.Fatalf("connected/%d DPI does not use the compact macOS content size: %v", w.dpi, client)
 		}
-		for id, y := range map[int]int{7: 87, 8: 128, idDisconnect: 87, idCodex: 184, idClaude: 228,
-			idCopilot: 272, idProject: 338} {
+		for id, y := range map[int]int{7: 8, 8: 42, idDisconnect: 8, idCodex: 109, idClaude: 153,
+			idCopilot: 197} {
 			var bounds rect
 			proc("GetWindowRect", w.control(id), uintptr(unsafe.Pointer(&bounds)))
 			proc("MapWindowPoints", 0, w.Handle, uintptr(unsafe.Pointer(&bounds)), 2)
@@ -443,16 +465,18 @@ func TestNativeAppearanceMatchesExistingInterface(t *testing.T) {
 		if noticeVisible != (w.notice != "" || text(w.status["error"]) != "") {
 			t.Fatal("the connected homepage reserves space for an empty notice or hides an active notice")
 		}
-		titleVisible := proc("GetWindowLongW", w.control(1), ^uintptr(15))&0x10000000 != 0
-		if titleVisible == noticeVisible {
-			t.Fatal("connected errors must replace the header title without reserving vertical space")
+		if w.control(1) != 0 || w.control(idProject) != 0 {
+			t.Fatal("the content must not include a product logo, title, or version")
+		}
+		if noticeVisible && proc("GetWindowLongW", w.control(8), ^uintptr(15))&0x10000000 != 0 {
+			t.Fatal("connected errors must replace usage details")
 		}
 		var noticeBounds rect
 		proc("GetWindowRect", w.control(12), uintptr(unsafe.Pointer(&noticeBounds)))
 		proc("MapWindowPoints", 0, w.Handle, uintptr(unsafe.Pointer(&noticeBounds)), 2)
-		if noticeBounds != (rect{int32(32 * w.dpi / 96), int32(24 * w.dpi / 96),
-			int32(280 * w.dpi / 96), int32(56 * w.dpi / 96)}) {
-			t.Fatal("connected error must fit beside header actions", noticeBounds)
+		if noticeBounds != (rect{int32(28 * w.dpi / 96), int32(42 * w.dpi / 96),
+			int32(372 * w.dpi / 96), int32(74 * w.dpi / 96)}) {
+			t.Fatal("connected error must fit in the usage slot", noticeBounds)
 		}
 		screenshot := captureClient(t, w.Handle, int(client.Right), int(client.Bottom))
 		pixel := func(x, y int) color.NRGBA {
@@ -461,20 +485,13 @@ func TestNativeAppearanceMatchesExistingInterface(t *testing.T) {
 		rgb := func(value uint32) color.NRGBA {
 			return color.NRGBA{R: byte(value >> 16), G: byte(value >> 8), B: byte(value), A: 255}
 		}
-		if footerY-322 != 16 {
-			t.Fatal("client panel must have equal header, account and footer gaps")
+		if !w.highContrast && pixel(5, 5) != rgb(0) {
+			t.Fatal("connected account region must use a solid black background")
 		}
-		for _, start := range []int{56, 162, 322} {
-			for y := start; y < start+16; y++ {
-				if pixel(200, y) != rgb(w.palette.background) {
-					t.Fatalf("connected/%d DPI does not preserve the 16-point gap at %d", w.dpi, start)
-				}
-			}
-		}
-		for _, y := range []int{206, 228, 250, 272, 294} {
-			if pixel(32, y) != rgb(w.palette.border) || pixel(40, y) != rgb(w.palette.panel) ||
+		for _, y := range []int{91, 131, 153, 175, 197, 219, 258} {
+			if pixel(0, y) != rgb(w.palette.panel) || pixel(399, y) != rgb(w.palette.panel) ||
 				pixel(200, y) != rgb(w.palette.panel) {
-				t.Fatalf("connected/%d DPI does not render one continuous Bridge panel at row %d", w.dpi, y)
+				t.Fatalf("connected/%d DPI must use one edge-to-edge client surface at row %d", w.dpi, y)
 			}
 		}
 		assertVisibleControlsFit()
@@ -506,17 +523,17 @@ func TestNativeAppearanceMatchesExistingInterface(t *testing.T) {
 					}
 					want := color.NRGBA{R: byte(dot >> 16), G: byte(dot >> 8), B: byte(dot), A: 255}
 					for _, id := range []int{idClaude, idCodex, idCopilot} {
-						image := captureClient(t, w.control(id), 320, 44)
+						image := captureClient(t, w.control(id), 364, 44)
 						if got := image.NRGBAAt(62, 33); got != want {
 							t.Fatal("status dot does not use its semantic color", theme, id, enabled, got, want)
 						}
 					}
-					reference := captureClient(t, w.control(idClaude), 320, 44)
+					reference := captureClient(t, w.control(idClaude), 364, 44)
 					for _, id := range []int{idCodex, idCopilot} {
 						if id == idCopilot && !enabled {
 							continue
 						}
-						status := captureClient(t, w.control(id), 320, 44)
+						status := captureClient(t, w.control(id), 364, 44)
 						for y := 24; y < 44; y++ {
 							for x := 58; x < 254; x++ {
 								if status.NRGBAAt(x, y) != reference.NRGBAAt(x, y) {
@@ -542,19 +559,15 @@ func TestNativeAppearanceMatchesExistingInterface(t *testing.T) {
 			}
 			screenshot := captureClient(t, w.Handle, windowWidth, w.contentHeight())
 			want := themePalette(theme == "dark", w.highContrast)
+			if view == "connected" && !w.highContrast {
+				want.background = 0
+			}
 			background := screenshot.NRGBAAt(5, 5)
 			if background != (color.NRGBA{R: byte(want.background >> 16), G: byte(want.background >> 8), B: byte(want.background), A: 255}) {
 				t.Fatalf("%s/%s has an incorrect plain background: %v", theme, view, background)
 			}
-			for _, x := range []int{38, 44, 50} {
-				pixel := screenshot.NRGBAAt(x, 38)
-				if pixel.R < 247 || pixel.G < 247 || pixel.B < 247 {
-					t.Fatal("header must render two filled circles joined by a line", theme, view, x)
-				}
-			}
-			tile := screenshot.NRGBAAt(48, 29)
-			if tile.R <= tile.G || tile.R <= tile.B {
-				t.Fatal("header mark must use a Pomegram gradient background", theme, view)
+			if w.control(1) != 0 || w.control(idProject) != 0 || w.control(idDone) != 0 {
+				t.Fatal("product header, version, or Settings Done control is still present")
 			}
 			if dir := os.Getenv("KOBASHI_UI_CAPTURE_DIR"); dir != "" {
 				if err := os.MkdirAll(dir, 0700); err != nil {
@@ -574,14 +587,13 @@ func TestNativeAppearanceMatchesExistingInterface(t *testing.T) {
 		}
 	}
 	for id, want := range map[int]rect{
-		idSettings: {336, 24, 368, 56},
-		idCodex:    {40, 184, 360, 228}, idClaude: {40, 228, 360, 272},
-		idCopilot:    {40, 272, 360, 316},
-		idDisconnect: {237, 87, 321, 115},
-		idAccounts:   {321, 87, 349, 115},
-		idStartup:    {32, 114, 368, 144}, idTray: {32, 162, 368, 192},
-		idAppearanceLabel: {40, 214, 172, 238},
-		idDone:            {32, 290, 368, 322}, idProject: {252, 338, 368, 362},
+		idSettings: {344, 8, 376, 40},
+		idCodex:    {18, 109, 382, 153}, idClaude: {18, 153, 382, 197},
+		idCopilot:    {18, 197, 382, 241},
+		idDisconnect: {236, 8, 312, 36},
+		idStartup:    {16, 48, 384, 80}, idTray: {16, 84, 384, 116},
+		idAppearanceLabel: {24, 131, 176, 149},
+		idSettingsBack:    {16, 0, 48, 32},
 	} {
 		var got rect
 		proc("GetWindowRect", w.control(id), uintptr(unsafe.Pointer(&got)))
@@ -607,7 +619,7 @@ func TestNativeAppearanceMatchesExistingInterface(t *testing.T) {
 			assertStatus(idConnect, "Not Connected", w.palette.disconnected)
 			var client rect
 			proc("GetClientRect", w.Handle, uintptr(unsafe.Pointer(&client)))
-			if int(client.Right) != windowWidth*dpi/96 || int(client.Bottom) != windowHeight*dpi/96 {
+			if int(client.Right) != windowWidth*dpi/96 || int(client.Bottom) != w.contentHeight()*dpi/96 {
 				t.Fatalf("%s/%d DPI changed the fixed logical content size: %v", theme, dpi, client)
 			}
 			var frame rect
@@ -674,7 +686,7 @@ func TestNativeAppearanceMatchesExistingInterface(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				err = png.Encode(f, captureClient(t, w.Handle, windowWidth*dpi/96, windowHeight*dpi/96))
+				err = png.Encode(f, captureClient(t, w.Handle, windowWidth*dpi/96, w.contentHeight()*dpi/96))
 				closeErr := f.Close()
 				if err != nil || closeErr != nil {
 					t.Fatal(err, closeErr)
@@ -734,14 +746,17 @@ func TestNativeAppearanceMatchesExistingInterface(t *testing.T) {
 			w.render()
 			assertConnectedLayout()
 			w.status["usage"] = map[string]any{"creditsUsed": float64(12), "entitlement": float64(100)}
-			mainFrame := w.windowBounds(w.Handle)
+			var mainFrame rect
+			proc("GetWindowRect", w.Handle, uintptr(unsafe.Pointer(&mainFrame)))
 			w.view = "settings"
 			w.render()
-			if w.windowBounds(w.Handle) != mainFrame {
-				t.Fatal("switching to Settings resizes or moves the window", theme, dpi)
+			var settingsFrame rect
+			proc("GetWindowRect", w.Handle, uintptr(unsafe.Pointer(&settingsFrame)))
+			if settingsFrame.Top != mainFrame.Top || settingsFrame.Left != mainFrame.Left {
+				t.Fatal("switching to Settings moved the window's top edge", theme, dpi)
 			}
 			proc("GetClientRect", w.Handle, uintptr(unsafe.Pointer(&client)))
-			if int(client.Right) != windowWidth*dpi/96 || int(client.Bottom) != windowHeight*dpi/96 {
+			if int(client.Right) != windowWidth*dpi/96 || int(client.Bottom) != 220*dpi/96 {
 				t.Fatalf("%s/%d DPI changed the Settings window size: %v", theme, dpi, client)
 			}
 			settingsImage := captureClient(t, w.Handle, int(client.Right), int(client.Bottom))
@@ -754,14 +769,14 @@ func TestNativeAppearanceMatchesExistingInterface(t *testing.T) {
 			var appearanceBounds rect
 			proc("GetWindowRect", w.control(idAppearance), uintptr(unsafe.Pointer(&appearanceBounds)))
 			proc("MapWindowPoints", 0, w.Handle, uintptr(unsafe.Pointer(&appearanceBounds)), 2)
-			if appearanceBounds.Left < int32(188*dpi/96) || appearanceBounds.Right > int32(368*dpi/96) ||
-				appearanceBounds.Top < int32(206*dpi/96) || appearanceBounds.Bottom > int32(274*dpi/96) {
+			if appearanceBounds.Left < int32(200*dpi/96) || appearanceBounds.Right > int32(376*dpi/96) ||
+				appearanceBounds.Top < int32(124*dpi/96) || appearanceBounds.Bottom > int32(164*dpi/96) {
 				t.Fatal("native Appearance selector overlaps other Settings controls", theme, dpi, appearanceBounds)
 			}
 			background := color.NRGBA{R: byte(w.palette.background >> 16), G: byte(w.palette.background >> 8),
 				B: byte(w.palette.background), A: 255}
-			for y := 114; y < 286; y++ {
-				if settingsImage.NRGBAAt(32*dpi/96, y*dpi/96) != background {
+			for y := 40; y < 220; y++ {
+				if settingsImage.NRGBAAt(0, y*dpi/96) != background {
 					t.Fatalf("%s/%d DPI still draws a Settings panel border", theme, dpi)
 				}
 			}
@@ -775,7 +790,7 @@ func TestNativeAppearanceMatchesExistingInterface(t *testing.T) {
 					}
 					if (c.id == idStartup || c.id == idTray) && proc("SendMessageW", c.handle, 0xf0, 0, 0) == 1 {
 						on := color.NRGBA{R: byte(w.palette.on >> 16), G: byte(w.palette.on >> 8), B: byte(w.palette.on), A: 255}
-						if image.NRGBAAt(312*dpi/96, 10*dpi/96) != on {
+						if image.NRGBAAt((c.w-24)*dpi/96, 10*dpi/96) != on {
 							t.Fatal("checked box does not use the contrast-safe berry fill", c.id, theme, dpi)
 						}
 					}
@@ -797,26 +812,15 @@ func TestNativeAppearanceMatchesExistingInterface(t *testing.T) {
 			if proc("GetNextDlgTabItem", w.Handle, w.control(idStartup), 0) != w.control(idTray) ||
 				proc("GetNextDlgTabItem", w.Handle, w.control(idTray), 1) != w.control(idStartup) ||
 				proc("GetNextDlgTabItem", w.Handle, w.control(idTray), 0) != w.control(idAppearance) ||
-				proc("GetNextDlgTabItem", w.Handle, w.control(idAppearance), 0) != w.control(idDone) ||
-				proc("GetNextDlgTabItem", w.Handle, w.control(idDone), 1) != w.control(idAppearance) {
-				t.Fatal("Settings focus order must be Start at login, Close to tray, Appearance, Done")
+				proc("GetNextDlgTabItem", w.Handle, w.control(idAppearance), 0) != w.control(idLanguage) ||
+				proc("GetNextDlgTabItem", w.Handle, w.control(idLanguage), 0) != w.control(idSettingsBack) {
+				t.Fatal("Settings focus order must be Start at login, Close to tray, Appearance, Language, Back")
 			}
-			if proc("GetWindowLongW", w.control(idDone), ^uintptr(15))&0x10000 == 0 {
-				t.Fatal("Done lost keyboard focusability")
+			if proc("GetWindowLongW", w.control(idSettingsBack), ^uintptr(15))&0x10000 == 0 {
+				t.Fatal("Back lost keyboard focusability")
 			}
-			if w.control(idQuit) != 0 ||
-				proc("GetNextDlgTabItem", w.Handle, w.control(idDone), 0) != w.control(idProject) {
-				t.Fatal("Settings must navigate from Done directly to Version without a quit link")
-			}
-			var doneBounds, versionBounds rect
-			proc("GetWindowRect", w.control(idDone), uintptr(unsafe.Pointer(&doneBounds)))
-			proc("GetWindowRect", w.control(idProject), uintptr(unsafe.Pointer(&versionBounds)))
-			proc("MapWindowPoints", 0, w.Handle, uintptr(unsafe.Pointer(&doneBounds)), 2)
-			proc("MapWindowPoints", 0, w.Handle, uintptr(unsafe.Pointer(&versionBounds)), 2)
-			if math.Abs(float64(int(versionBounds.Top-doneBounds.Bottom)-16*dpi/96)) > 1 ||
-				int(versionBounds.Bottom) > (windowHeight-8)*dpi/96 ||
-				int(versionBounds.Bottom-versionBounds.Top) < 24*dpi/96 {
-				t.Errorf("%s/%d DPI overlaps, clips, or misaligns the version link", theme, dpi)
+			if w.control(idQuit) != 0 || w.control(idProject) != 0 || w.control(idDone) != 0 || w.control(idPrivacy) != 0 {
+				t.Fatal("Settings must not contain Done, Version, Quit, or Privacy links")
 			}
 			if dir := os.Getenv("KOBASHI_UI_CAPTURE_DIR"); dir != "" {
 				path := filepath.Join(dir, fmt.Sprintf("%s-settings-%d-dpi.png", theme, dpi))
@@ -824,7 +828,7 @@ func TestNativeAppearanceMatchesExistingInterface(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				err = png.Encode(f, captureClient(t, w.Handle, windowWidth*dpi/96, windowHeight*dpi/96))
+				err = png.Encode(f, captureClient(t, w.Handle, windowWidth*dpi/96, w.contentHeight()*dpi/96))
 				closeErr := f.Close()
 				if err != nil || closeErr != nil {
 					t.Fatal(err, closeErr)
@@ -849,16 +853,13 @@ func TestNativeAppearanceMatchesExistingInterface(t *testing.T) {
 		if w.view != want || w.notice != "" {
 			t.Fatal("Done did not return to the main view", w.view, w.notice)
 		}
-		frame := w.windowBounds(w.Handle)
 		w.command(idSettings)
-		if w.view != "settings" || proc("IsWindowVisible", w.control(idSettings)) == 0 ||
-			proc("IsWindowEnabled", w.control(idSettings)) == 0 {
-			t.Fatal("Settings icon did not open Settings or remained unavailable")
+		if w.view != "settings" || proc("GetWindowLongW", w.control(idSettings), ^uintptr(15))&0x10000000 != 0 {
+			t.Fatal("Settings icon did not open Settings or remains visible beside Back")
 		}
-		w.command(idSettings)
-		if w.view != want || w.windowBounds(w.Handle) != frame ||
-			proc("GetWindowLongW", w.control(idDone), ^uintptr(15))&0x10000000 != 0 {
-			t.Fatal("Settings icon did not return to the main screen without changing the window")
+		w.command(idSettingsBack)
+		if w.view != want || proc("GetWindowLongW", w.control(idSettings), ^uintptr(15))&0x10000000 == 0 {
+			t.Fatal("Back did not return to the main screen")
 		}
 	}
 	w.status["ready"] = false
@@ -871,7 +872,7 @@ func TestNativeAppearanceMatchesExistingInterface(t *testing.T) {
 	w.view = "connected"
 	w.status["username"] = "xjin6"
 	w.render()
-	for id, want := range map[int]string{idProject: "v2.1.6", 7: "@xjin6"} {
+	for id, want := range map[int]string{7: "@xjin6"} {
 		buffer := make([]uint16, 128)
 		proc("GetWindowTextW", w.control(id), uintptr(unsafe.Pointer(&buffer[0])), uintptr(len(buffer)))
 		if syscall.UTF16ToString(buffer) != want {
@@ -880,9 +881,9 @@ func TestNativeAppearanceMatchesExistingInterface(t *testing.T) {
 	}
 	w.view = "settings"
 	w.render()
-	if proc("GetNextDlgTabItem", w.Handle, w.control(idDone), 0) != w.control(idProject) ||
-		proc("GetNextDlgTabItem", w.Handle, w.control(idProject), 1) != w.control(idDone) {
-		t.Fatal("version link lost forward or reverse keyboard navigation")
+	if proc("GetNextDlgTabItem", w.Handle, w.control(idLanguage), 0) != w.control(idSettingsBack) ||
+		proc("GetNextDlgTabItem", w.Handle, w.control(idSettingsBack), 1) != w.control(idLanguage) {
+		t.Fatal("Back lost forward or reverse keyboard navigation")
 	}
 }
 

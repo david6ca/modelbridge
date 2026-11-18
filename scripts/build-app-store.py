@@ -21,7 +21,7 @@ if a.runtime_dir:runtime_command+=['--runtime-dir',a.runtime_dir]
 subprocess.run(runtime_command,check=True)
 # Generate the same product icon without altering tracked artwork or other builds.
 iconset=output/'AppIcon.iconset'
-subprocess.run(['xcrun','--toolchain','XcodeDefault','swift','-module-cache-path',str(output/'swift-cache'),str(source/'macos/icon.swift'),str(source/'assets/kobashi-icon.png'),str(iconset)],check=True)
+subprocess.run(['xcrun','--toolchain','XcodeDefault','swift','-module-cache-path',str(output/'swift-cache'),str(source/'macos/icon.swift'),str(source/'assets/modelbridge-icon.png'),str(iconset)],check=True)
 subprocess.run(['/usr/bin/iconutil','-c','icns',str(iconset),'-o',str(store/'AppIcon.icns')],check=True)
 version=json.loads(store_metadata.read_text())['version']
 project=store/'ModelBridge.xcodeproj';archive=output/'ModelBridge.xcarchive'

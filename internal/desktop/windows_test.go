@@ -14,7 +14,7 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/david6ca/Kobashi2/internal/bridge"
+	"github.com/david6ca/modelbridge/internal/bridge"
 )
 
 func freePort(t *testing.T) int {
@@ -83,18 +83,18 @@ func TestNativeWindowControlsSizeSettingsAndTrayLifecycle(t *testing.T) {
 	if dpi == 0 {
 		dpi = 96
 	}
-	if int(r.Right) != windowWidth*int(dpi)/96 || int(r.Bottom) != windowHeight*int(dpi)/96 {
+	if int(r.Right) != windowWidth*int(dpi)/96 || int(r.Bottom) != 259*int(dpi)/96 {
 		t.Fatal("incorrect fixed content dimensions", r, dpi)
 	}
 	proc("SetWindowPos", h, 0, 0, 0, 200, 200, 0x2|0x4|0x10)
 	proc("GetClientRect", h, uintptr(unsafe.Pointer(&r)))
-	if int(r.Right) != windowWidth*int(dpi)/96 || int(r.Bottom) != windowHeight*int(dpi)/96 {
+	if int(r.Right) != windowWidth*int(dpi)/96 || int(r.Bottom) != 259*int(dpi)/96 {
 		t.Fatal("Windows resized the window below its complete content", r, dpi)
 	}
 	suggested := rect{Left: 100, Top: 100}
 	proc("SendMessageW", h, 0x2e0, 144<<16|144, uintptr(unsafe.Pointer(&suggested)))
 	proc("GetClientRect", h, uintptr(unsafe.Pointer(&r)))
-	if r.Right != windowWidth*144/96 || r.Bottom != windowHeight*144/96 {
+	if r.Right != windowWidth*144/96 || r.Bottom != 259*144/96 {
 		t.Fatal("DPI changes did not preserve logical dimensions", r)
 	}
 	proc("SendMessageW", h, 0x2e0, dpi<<16|dpi, uintptr(unsafe.Pointer(&suggested)))
@@ -155,10 +155,10 @@ func TestNativeWindowControlsSizeSettingsAndTrayLifecycle(t *testing.T) {
 			t.Fatal("successful appearance changes must stay silent")
 		}
 	}
-	proc("SendMessageW", h, 0x111, idDone, 0)
-	if proc("GetWindowLongW", proc("GetDlgItem", h, idDone), ^uintptr(15))&0x10000000 != 0 ||
+	proc("SendMessageW", h, 0x111, idSettingsBack, 0)
+	if proc("GetWindowLongW", proc("GetDlgItem", h, idSettingsBack), ^uintptr(15))&0x10000000 != 0 ||
 		proc("GetWindowLongW", proc("GetDlgItem", h, idConnect), ^uintptr(15))&0x10000000 == 0 {
-		t.Fatal("Done did not close Settings without quitting")
+		t.Fatal("Back did not close Settings without quitting")
 	}
 	if !a.Settings().StartAtLogin {
 		t.Fatal("Done discarded the saved setting")
@@ -166,7 +166,7 @@ func TestNativeWindowControlsSizeSettingsAndTrayLifecycle(t *testing.T) {
 	proc("SendMessageW", h, 0x111, idSettings, 0)
 	proc("PostMessageW", h, 0x100, 0x1b, 0)
 	waitFor(t, func() bool {
-		return proc("GetWindowLongW", proc("GetDlgItem", h, idDone), ^uintptr(15))&0x10000000 == 0
+		return proc("GetWindowLongW", proc("GetDlgItem", h, idSettingsBack), ^uintptr(15))&0x10000000 == 0
 	})
 	proc("SendMessageW", h, 0x111, idSettings, 0)
 	/*

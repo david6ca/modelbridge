@@ -84,7 +84,7 @@ func (l *localManager) proxy(w http.ResponseWriter, r *http.Request, s session, 
 		token = r.Header.Get("X-Api-Key")
 	}
 	if subtle.ConstantTimeCompare([]byte(token), []byte("PROXY_MANAGED")) != 1 {
-		fail(401, "Use the Kobashi client configuration")
+		fail(401, "Use the ModelBridge client configuration")
 		return
 	}
 	if r.Method == http.MethodGet && r.URL.Path == "/v1/models" {

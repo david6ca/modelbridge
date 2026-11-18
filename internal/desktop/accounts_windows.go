@@ -19,7 +19,7 @@ func (w *Window) showAccounts() error {
 	}
 	if !accountClassRegistered {
 		accountPopupCallback = syscall.NewCallback(accountPopupProc)
-		class := windowClass{Procedure: accountPopupCallback, Name: wide("KobashiAccountPopup"),
+		class := windowClass{Procedure: accountPopupCallback, Name: wide("ModelBridgeAccountPopup"),
 			Cursor: proc("LoadCursorW", 0, 32512)}
 		class.Size = uint32(unsafe.Sizeof(class))
 		if proc("RegisterClassExW", uintptr(unsafe.Pointer(&class))) == 0 {
@@ -37,7 +37,11 @@ func (w *Window) showAccounts() error {
 	height := min(216, len(w.popupAccounts)*36)
 	var anchor rect
 	proc("GetWindowRect", w.control(idAccounts), uintptr(unsafe.Pointer(&anchor)))
-	width, popupHeight := 284*w.dpi/96, (height+50)*w.dpi/96
+	extra := 50
+	if w.status["connected"] == true {
+		extra += 36
+	}
+	width, popupHeight := 284*w.dpi/96, (height+extra)*w.dpi/96
 	x, y := int(anchor.Right)-width, int(anchor.Bottom)
 	monitor := struct {
 		Size          uint32
@@ -50,13 +54,13 @@ func (w *Window) showAccounts() error {
 		y = max(int(monitor.Work.Top), min(y, int(monitor.Work.Bottom)-popupHeight))
 	}
 	w.accountOffset = 0
-	w.accountPopup = proc("CreateWindowExW", 0x80, uintptr(unsafe.Pointer(wide("KobashiAccountPopup"))),
+	w.accountPopup = proc("CreateWindowExW", 0x80, uintptr(unsafe.Pointer(wide("ModelBridgeAccountPopup"))),
 		uintptr(unsafe.Pointer(wide("Accounts"))), 0x80800000,
 		uintptr(x), uintptr(y), uintptr(width), uintptr(popupHeight), w.Handle, 0, 0, 0)
 	if w.accountPopup == 0 {
 		return errors.New("could not open the accounts popup")
 	}
-	w.accountList = proc("CreateWindowExW", 0, uintptr(unsafe.Pointer(wide("KobashiAccountPopup"))), 0,
+	w.accountList = proc("CreateWindowExW", 0, uintptr(unsafe.Pointer(wide("ModelBridgeAccountPopup"))), 0,
 		0x50200000, 0, 0, uintptr(282*w.dpi/96), uintptr(height*w.dpi/96), w.accountPopup, 0, 0, 0)
 	if w.accountList == 0 {
 		w.closeAccounts()
@@ -87,6 +91,12 @@ func (w *Window) showAccounts() error {
 	if err := add(w.tr("Add account"), idAddAccount, 8, height+9, 264, 32, w.accountPopup); err != nil {
 		w.closeAccounts()
 		return err
+	}
+	if w.status["connected"] == true {
+		if err := add(w.tr("Disconnect"), idAccountDisconnect, 8, height+45, 264, 32, w.accountPopup); err != nil {
+			w.closeAccounts()
+			return err
+		}
 	}
 	w.scrollAccounts(0)
 	w.updateAccountControls()
@@ -290,6 +300,9 @@ func (w *Window) accountKey(msg message) bool {
 		}
 	}
 	ids = append(ids, idAddAccount)
+	if w.control(idAccountDisconnect) != 0 {
+		ids = append(ids, idAccountDisconnect)
+	}
 	index := len(ids) - 1
 	focus := proc("GetFocus")
 	for i, id := range ids {

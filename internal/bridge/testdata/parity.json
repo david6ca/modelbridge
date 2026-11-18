@@ -8,7 +8,7 @@
         "modelCatalogPath": "C:\\Users\\me\\.kobashi\\codex-models.json"
       }
     ],
-    "expected": "model_provider = \"kobashi\"\nmodel_catalog_json = \"C:\\\\Users\\\\me\\\\.kobashi\\\\codex-models.json\" # Kobashi default\n\n[model_providers.kobashi]\nname = \"Kobashi\"\nbase_url = \"http://127.0.0.1:18921/v1\"\nexperimental_bearer_token = \"PROXY_MANAGED\"\nrequires_openai_auth = true\nwire_api = \"responses\"\n\n[desktop]\nshow-context-window-usage = true\n"
+    "expected": "model_provider = \"kobashi\"\nmodel_catalog_json = \"C:\\\\Users\\\\me\\\\.kobashi\\\\codex-models.json\" # Kobashi default\n\n[model_providers.kobashi]\nname = \"ModelBridge\"\nbase_url = \"http://127.0.0.1:18921/v1\"\nexperimental_bearer_token = \"PROXY_MANAGED\"\nrequires_openai_auth = true\nwire_api = \"responses\"\n\n[desktop]\nshow-context-window-usage = true\n"
   },
   {
     "operation": "injectCodexConfig",
@@ -19,7 +19,7 @@
         "modelCatalogPath": "/tmp/kobashi-models.json"
       }
     ],
-    "expected": "model_provider = \"kobashi\"\nmodel_catalog_json = \"/tmp/kobashi-models.json\" # Kobashi default\nmodel_context_window = 320000\nmodel_auto_compact_token_limit = 280000\n\n[model_providers.kobashi]\nname = \"Kobashi\"\nbase_url = \"http://127.0.0.1:18921/v1\"\nexperimental_bearer_token = \"PROXY_MANAGED\"\nrequires_openai_auth = true\nwire_api = \"responses\"\n"
+    "expected": "model_provider = \"kobashi\"\nmodel_catalog_json = \"/tmp/kobashi-models.json\" # Kobashi default\nmodel_context_window = 320000\nmodel_auto_compact_token_limit = 280000\n\n[model_providers.kobashi]\nname = \"ModelBridge\"\nbase_url = \"http://127.0.0.1:18921/v1\"\nexperimental_bearer_token = \"PROXY_MANAGED\"\nrequires_openai_auth = true\nwire_api = \"responses\"\n"
   },
   {
     "operation": "injectCodexConfig",
@@ -30,7 +30,7 @@
         "modelCatalogPath": "C:\\Users\\me\\.kobashi\\codex-models.json"
       }
     ],
-    "expected": "model_provider = \"kobashi\"\nmodel_catalog_json = \"D:\\\\mine.json\"\n\n[model_providers.kobashi]\nname = \"Kobashi\"\nbase_url = \"http://127.0.0.1:18921/v1\"\nexperimental_bearer_token = \"PROXY_MANAGED\"\nrequires_openai_auth = true\nwire_api = \"responses\"\n\n[desktop]\nshow-context-window-usage = true\n"
+    "expected": "model_provider = \"kobashi\"\nmodel_catalog_json = \"D:\\\\mine.json\"\n\n[model_providers.kobashi]\nname = \"ModelBridge\"\nbase_url = \"http://127.0.0.1:18921/v1\"\nexperimental_bearer_token = \"PROXY_MANAGED\"\nrequires_openai_auth = true\nwire_api = \"responses\"\n\n[desktop]\nshow-context-window-usage = true\n"
   },
   {
     "operation": "restoreCodexConfigContents",
@@ -52,7 +52,7 @@
         "modelCatalogPath": "C:\\Users\\me\\.kobashi\\codex-models.json"
       }
     ],
-    "expected": "model_provider = \"kobashi\"\nmodel_catalog_json = \"C:\\\\Users\\\\me\\\\.kobashi\\\\codex-models.json\" # Kobashi default\n\n[model_providers.kobashi]\nname = \"Kobashi\"\nbase_url = \"http://127.0.0.1:18921/v1\"\nexperimental_bearer_token = \"PROXY_MANAGED\"\nrequires_openai_auth = true\nwire_api = \"responses\"\n"
+    "expected": "model_provider = \"kobashi\"\nmodel_catalog_json = \"C:\\\\Users\\\\me\\\\.kobashi\\\\codex-models.json\" # Kobashi default\n\n[model_providers.kobashi]\nname = \"ModelBridge\"\nbase_url = \"http://127.0.0.1:18921/v1\"\nexperimental_bearer_token = \"PROXY_MANAGED\"\nrequires_openai_auth = true\nwire_api = \"responses\"\n"
   },
   {
     "operation": "restoreCodexConfigContents",
@@ -71,7 +71,7 @@
       "",
       18921
     ],
-    "expected": "model_provider = \"kobashi\"\n\n[model_providers.kobashi]\nname = \"Kobashi\"\nbase_url = \"http://127.0.0.1:18921/v1\"\nexperimental_bearer_token = \"PROXY_MANAGED\"\nrequires_openai_auth = true\nwire_api = \"responses\"\n"
+    "expected": "model_provider = \"kobashi\"\n\n[model_providers.kobashi]\nname = \"ModelBridge\"\nbase_url = \"http://127.0.0.1:18921/v1\"\nexperimental_bearer_token = \"PROXY_MANAGED\"\nrequires_openai_auth = true\nwire_api = \"responses\"\n"
   },
   {
     "operation": "restoreCodexConfigContents",
@@ -89,7 +89,7 @@
         "modelCatalogPath": "/tmp/models.json"
       }
     ],
-    "expected": "model_provider = \"kobashi\"\nmodel_catalog_json = \"/tmp/models.json\" # Kobashi default\n\n[model_providers.kobashi]\nname = \"Kobashi\"\nbase_url = \"http://127.0.0.1:18921/v1\"\nexperimental_bearer_token = \"PROXY_MANAGED\"\nrequires_openai_auth = true\nwire_api = \"responses\"\n"
+    "expected": "model_provider = \"kobashi\"\nmodel_catalog_json = \"/tmp/models.json\" # Kobashi default\n\n[model_providers.kobashi]\nname = \"ModelBridge\"\nbase_url = \"http://127.0.0.1:18921/v1\"\nexperimental_bearer_token = \"PROXY_MANAGED\"\nrequires_openai_auth = true\nwire_api = \"responses\"\n"
   },
   {
     "operation": "injectCodexConfig",
@@ -100,7 +100,7 @@
         "modelCatalogPath": "/tmp/models.json"
       }
     ],
-    "expected": "model_provider = \"kobashi\"\nmodel_catalog_json = \"/tmp/models.json\" # Kobashi default\nmodel_context_window = 1000000\n\n[model_providers.kobashi]\nname = \"Kobashi\"\nbase_url = \"http://127.0.0.1:18921/v1\"\nexperimental_bearer_token = \"PROXY_MANAGED\"\nrequires_openai_auth = true\nwire_api = \"responses\"\n"
+    "expected": "model_provider = \"kobashi\"\nmodel_catalog_json = \"/tmp/models.json\" # Kobashi default\nmodel_context_window = 1000000\n\n[model_providers.kobashi]\nname = \"ModelBridge\"\nbase_url = \"http://127.0.0.1:18921/v1\"\nexperimental_bearer_token = \"PROXY_MANAGED\"\nrequires_openai_auth = true\nwire_api = \"responses\"\n"
   },
   {
     "operation": "injectCodexConfig",
@@ -108,7 +108,7 @@
       "",
       18921
     ],
-    "expected": "model_provider = \"kobashi\"\n\n[model_providers.kobashi]\nname = \"Kobashi\"\nbase_url = \"http://127.0.0.1:18921/v1\"\nexperimental_bearer_token = \"PROXY_MANAGED\"\nrequires_openai_auth = true\nwire_api = \"responses\"\n"
+    "expected": "model_provider = \"kobashi\"\n\n[model_providers.kobashi]\nname = \"ModelBridge\"\nbase_url = \"http://127.0.0.1:18921/v1\"\nexperimental_bearer_token = \"PROXY_MANAGED\"\nrequires_openai_auth = true\nwire_api = \"responses\"\n"
   },
   {
     "operation": "isKobashiManagedConfig",
@@ -192,7 +192,7 @@
       "",
       18921
     ],
-    "expected": "model_provider = \"kobashi\"\n\n[model_providers.kobashi]\nname = \"Kobashi\"\nbase_url = \"http://127.0.0.1:18921/v1\"\nexperimental_bearer_token = \"PROXY_MANAGED\"\nrequires_openai_auth = true\nwire_api = \"responses\"\n"
+    "expected": "model_provider = \"kobashi\"\n\n[model_providers.kobashi]\nname = \"ModelBridge\"\nbase_url = \"http://127.0.0.1:18921/v1\"\nexperimental_bearer_token = \"PROXY_MANAGED\"\nrequires_openai_auth = true\nwire_api = \"responses\"\n"
   },
   {
     "operation": "restoreCodexConfigContents",
@@ -208,7 +208,7 @@
       "model_provider = \"kobashi\"\nmodel = \"gpt-5.6-sol\"\nmodel_context_window = 1050000\nmodel_auto_compact_token_limit = 900000\nmodel_reasoning_effort = \"ultra\"\n\n[model_providers.kobashi]\nname = \"Kobashi\"\nbase_url = \"http://127.0.0.1:18921/v1\"\nenv_key = \"OPENAI_API_KEY\"\nwire_api = \"responses\"\n\n[desktop]\nshow-context-window-usage = true\n",
       18921
     ],
-    "expected": "model_provider = \"kobashi\"\nmodel = \"gpt-5.6-sol\"\nmodel_context_window = 1050000\nmodel_auto_compact_token_limit = 900000\nmodel_reasoning_effort = \"ultra\"\n\n[model_providers.kobashi]\nname = \"Kobashi\"\nbase_url = \"http://127.0.0.1:18921/v1\"\nexperimental_bearer_token = \"PROXY_MANAGED\"\nrequires_openai_auth = true\nwire_api = \"responses\"\n\n[desktop]\nshow-context-window-usage = true\n"
+    "expected": "model_provider = \"kobashi\"\nmodel = \"gpt-5.6-sol\"\nmodel_context_window = 1050000\nmodel_auto_compact_token_limit = 900000\nmodel_reasoning_effort = \"ultra\"\n\n[model_providers.kobashi]\nname = \"ModelBridge\"\nbase_url = \"http://127.0.0.1:18921/v1\"\nexperimental_bearer_token = \"PROXY_MANAGED\"\nrequires_openai_auth = true\nwire_api = \"responses\"\n\n[desktop]\nshow-context-window-usage = true\n"
   },
   {
     "operation": "restoreCodexConfigContents",
@@ -224,7 +224,7 @@
       "model_context_window = 1000000\n",
       18921
     ],
-    "expected": "model_provider = \"kobashi\"\nmodel_context_window = 1000000\n\n[model_providers.kobashi]\nname = \"Kobashi\"\nbase_url = \"http://127.0.0.1:18921/v1\"\nexperimental_bearer_token = \"PROXY_MANAGED\"\nrequires_openai_auth = true\nwire_api = \"responses\"\n"
+    "expected": "model_provider = \"kobashi\"\nmodel_context_window = 1000000\n\n[model_providers.kobashi]\nname = \"ModelBridge\"\nbase_url = \"http://127.0.0.1:18921/v1\"\nexperimental_bearer_token = \"PROXY_MANAGED\"\nrequires_openai_auth = true\nwire_api = \"responses\"\n"
   },
   {
     "operation": "restoreCodexConfigContents",
@@ -243,7 +243,7 @@
         "modelCatalogPath": "/tmp/models.json"
       }
     ],
-    "expected": "model_provider = \"kobashi\"\nmodel_catalog_json = \"/tmp/models.json\" # Kobashi default\ndeveloper_instructions = \"\"\"\nKeep these bytes:\n\n[model_providers.kobashi]\nmodel_provider = \"kobashi\"\n\n\"\"\"\nliteral_instructions = '''\n[model_providers.copilot-bridge]\n'''\nallowed = [\n  \"alpha\",\n  \"[model_providers.kobashi]\",\n]\n\n\n\n[model_providers.kobashi]\nname = \"Kobashi\"\nbase_url = \"http://127.0.0.1:18921/v1\"\nexperimental_bearer_token = \"PROXY_MANAGED\"\nrequires_openai_auth = true\nwire_api = \"responses\"\n\n[desktop]\nshow-context-window-usage = true\n"
+    "expected": "model_provider = \"kobashi\"\nmodel_catalog_json = \"/tmp/models.json\" # Kobashi default\ndeveloper_instructions = \"\"\"\nKeep these bytes:\n\n[model_providers.kobashi]\nmodel_provider = \"kobashi\"\n\n\"\"\"\nliteral_instructions = '''\n[model_providers.copilot-bridge]\n'''\nallowed = [\n  \"alpha\",\n  \"[model_providers.kobashi]\",\n]\n\n\n\n[model_providers.kobashi]\nname = \"ModelBridge\"\nbase_url = \"http://127.0.0.1:18921/v1\"\nexperimental_bearer_token = \"PROXY_MANAGED\"\nrequires_openai_auth = true\nwire_api = \"responses\"\n\n[desktop]\nshow-context-window-usage = true\n"
   },
   {
     "operation": "restoreCodexConfigContents",
@@ -265,7 +265,7 @@
         "modelCatalogPath": "C:\\Users\\me\\models.json"
       }
     ],
-    "expected": "﻿model_provider = \"kobashi\"\r\nmodel_catalog_json = \"C:\\\\Users\\\\me\\\\models.json\" # Kobashi default\r\nmodel_context_window = 1000000\r\n\r\n\r\n[model_providers.kobashi]\r\nname = \"Kobashi\"\r\nbase_url = \"http://127.0.0.1:18921/v1\"\r\nexperimental_bearer_token = \"PROXY_MANAGED\"\r\nrequires_openai_auth = true\r\nwire_api = \"responses\"\r\n\r\n[desktop]\r\nshow-context-window-usage = true\r\n"
+    "expected": "﻿model_provider = \"kobashi\"\r\nmodel_catalog_json = \"C:\\\\Users\\\\me\\\\models.json\" # Kobashi default\r\nmodel_context_window = 1000000\r\n\r\n\r\n[model_providers.kobashi]\r\nname = \"ModelBridge\"\r\nbase_url = \"http://127.0.0.1:18921/v1\"\r\nexperimental_bearer_token = \"PROXY_MANAGED\"\r\nrequires_openai_auth = true\r\nwire_api = \"responses\"\r\n\r\n[desktop]\r\nshow-context-window-usage = true\r\n"
   },
   {
     "operation": "restoreCodexConfigContents",
@@ -284,7 +284,7 @@
       "model_provider = \"openai\"\n\n[model_providers.custom]\nname = \"Custom\"\nbase_url = \"https://example.test/v1\"\n\n[desktop]\nshow-context-window-usage = true\n",
       18921
     ],
-    "expected": "model_provider = \"kobashi\"\n\n[model_providers.kobashi]\nname = \"Kobashi\"\nbase_url = \"http://127.0.0.1:18921/v1\"\nexperimental_bearer_token = \"PROXY_MANAGED\"\nrequires_openai_auth = true\nwire_api = \"responses\"\n\n[model_providers.custom]\nname = \"Custom\"\nbase_url = \"https://example.test/v1\"\n\n[desktop]\nshow-context-window-usage = true\n"
+    "expected": "model_provider = \"kobashi\"\n\n[model_providers.kobashi]\nname = \"ModelBridge\"\nbase_url = \"http://127.0.0.1:18921/v1\"\nexperimental_bearer_token = \"PROXY_MANAGED\"\nrequires_openai_auth = true\nwire_api = \"responses\"\n\n[model_providers.custom]\nname = \"Custom\"\nbase_url = \"https://example.test/v1\"\n\n[desktop]\nshow-context-window-usage = true\n"
   },
   {
     "operation": "restoreCodexConfigContents",

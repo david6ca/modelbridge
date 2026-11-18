@@ -14,7 +14,8 @@ ModelBridge itself needs no additional runtime installation.
 
 The desktop app is now named **ModelBridge**. Existing login, settings, ports, and
 client integration identities stay unchanged: state remains in `~/.kobashi`,
-and the Codex/Copilot custom provider is still named **Kobashi**. The macOS bundle
+and existing Codex/Copilot provider identifiers remain unchanged while their
+display name becomes **ModelBridge**. The macOS bundle
 identifier and startup registration keys also retain their existing values, so
 the rename does not create a second set of preferences or providers. When
 replacing an older installation, keep only the renamed app at its installed
@@ -80,7 +81,7 @@ Use **Language** in Settings to choose
 System Default or one of 13 locales: English, simplified/traditional Chinese,
 Japanese, Korean, German, French, Brazilian Portuguese, Spanish, Arabic, Hindi,
 Russian, and Vietnamese. Changes apply immediately and are saved across launches.
-**Privacy Statement** opens the bundled statement offline from the macOS app menu or Windows Settings.
+**Privacy Statement** opens the bundled statement offline from the macOS app menu or Windows tray menu.
 
 ### Local models on Mac
 
@@ -187,12 +188,13 @@ with private file permissions. Existing single-account logins migrate in place.
 Login startup runs in the tray when close to tray is enabled; otherwise it opens
 the window. Settings are saved in `~/.kobashi/settings.json` independently of your
 GitHub connection and are preserved when you disconnect. The main window is
-400 logical pixels wide. Main and Settings share a fixed 400 × 370 content area
-on Windows and 400 × 390 on macOS, with a plain background and no decorative
-footer animation. Header-to-account, account-to-client, and client-to-version
-gaps are all 16 logical pixels. Switching pages or updating status never resizes
-the window or moves the cards. Main-screen errors temporarily replace the header
-title, beside the Settings action, rather than reserving empty space.
+400 logical pixels wide. The connected main screen uses a 400 × 259 content area,
+and Settings uses 400 × 220. Changing pages preserves the window's top edge.
+The content has no product logo, title, version link, or Settings Done button.
+Settings uses Back (or Escape) to return to the main screen. The account area is
+flat above one edge-to-edge client surface; Windows retains its native titlebar
+and controls. Main-screen errors temporarily replace usage details without moving
+the account information or client rows.
 Mouse selection adds no thick row border; keyboard focus remains visible around
 the relevant control. The app icon uses two outlined circles joined by a thin line.
 The macOS menu bar uses a solid connection mark as a template icon, so macOS
@@ -245,7 +247,7 @@ The bridge is off by default and does not require either of the other bridges.
 When off, its status reads **Paused**; when on, it reads **Active**.
 
 Enabling the bridge uses the running app's authenticated loopback control API to
-add or update the **Kobashi** custom provider and register a compatible model.
+add or update the **ModelBridge** custom provider and register a compatible model.
 It reads the provider and model back to verify that the app saved the
 configuration and credential.
 Its base URL is `http://127.0.0.1:18925/v1` (`18925 + N` with `--port-offset N`).
@@ -296,14 +298,14 @@ A failed or unconfirmed session switch is reported without disabling an
 already registered bridge, so a late switch can still use its endpoint.
 If Copilot exits or disconnects before acknowledging a switch, ModelBridge does not
 retry that switch automatically or claim it succeeded. Wait until the session
-is idle, then select **Kobashi** in its model picker to finish connecting. The
+is idle, then select **ModelBridge** in its model picker to finish connecting. The
 original selection remains saved for safe restoration; detailed transport
 diagnostics are kept in `~/.kobashi/kobashi.log`.
 If the app's runtime stops responding before a provider switch, ModelBridge leaves
 it untouched. A successful provider registration cannot repair an unresponsive
 Copilot runtime or confirm that a first message reached it.
 
-Check that **Kobashi** is selected in the session's model picker, then send a
+Check that **ModelBridge** is selected in the session's model picker, then send a
 message to verify inference. On Windows, you can also check catalog access at
 the default endpoint below; adjust the port if using `--port-offset`:
 
@@ -328,7 +330,7 @@ stops accepting requests. User-selected replacements are left unchanged.
 If a dependent session is running, restoration fails, or its original selection
 was not saved by an older version, the bridge stays enabled and reports an
 error instead of breaking inference. Wait for the session to become idle, or
-select a non-Kobashi provider in that session, then try again.
+select a different provider in that session, then try again.
 The provider remains registered; remove it in the app yourself if no longer
 needed. Restarting ModelBridge resumes an enabled bridge and re-registers its provider
 as needed. Saved original selections survive the restart, and previously managed
@@ -496,6 +498,10 @@ support. The running session keeps its verified list without a time-based expiry
 Real model-access failures still remove a model from the published directory and
 `/v1/models` immediately (the already-open native picker updates on its next launch).
 Real request validation errors still teach compatible parameters.
+Codex loads its model-picker catalog when its process starts, not whenever the
+catalog file changes. Models verified after that startup appear the next time
+you reopen Codex. ModelBridge never restarts Codex or interrupts a conversation
+to refresh the picker.
 
 Each startup round uses at most two concurrent checks, a 45-second timeout per
 request, and a 1,024-token output limit. These are real API requests and consume
@@ -602,7 +608,7 @@ Run `go test ./...` for native bridge, compatibility, configuration, transport,
 and packaging checks. On Windows with a graphical login session, this also
 exercises native controls, fixed DPI-scaled sizing, persisted settings, and
 close-to-tray/quit behavior using an isolated home and different loopback ports.
-Run `go run ./cmd/kobashi --no-open` for headless development. `--home <directory>` and
+Run `go run ./cmd/modelbridge --no-open` for headless development. `--home <directory>` and
 `--port-offset <offset>` isolate client configuration and ports;
 `--no-startup-registration` leaves OS startup registration unchanged.
 

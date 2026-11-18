@@ -1,4 +1,4 @@
-module github.com/david6ca/Kobashi2
+module github.com/david6ca/modelbridge
 
 go 1.27
 

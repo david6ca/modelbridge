@@ -36,7 +36,7 @@ func checkMacHarness(test string) error {
 	if err != nil {
 		return err
 	}
-	workspace, err := os.MkdirTemp(temp, "kobashi-cocoa-check-")
+	workspace, err := os.MkdirTemp(temp, "modelbridge-cocoa-check-")
 	if err != nil {
 		return err
 	}
@@ -81,7 +81,7 @@ func checkMacHarness(test string) error {
 	if err = os.MkdirAll(filepath.Join(app, "MacOS"), 0700); err != nil {
 		return err
 	}
-	for _, name := range []string{"kobashi-icon.png", "github.png", "claude.png", "codex.png"} {
+	for _, name := range []string{"modelbridge-icon.png", "github.png", "claude.png", "codex.png"} {
 		if err = copyFile(filepath.Join(root, "assets", name), filepath.Join(app, "Resources", name)); err != nil {
 			return err
 		}

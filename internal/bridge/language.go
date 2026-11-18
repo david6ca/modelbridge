@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/david6ca/Kobashi2/internal/localization"
+	"github.com/david6ca/modelbridge/internal/localization"
 )
 
 func (a *App) loadLanguage() {

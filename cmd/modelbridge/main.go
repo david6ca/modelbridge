@@ -14,8 +14,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/david6ca/Kobashi2/internal/bridge"
-	"github.com/david6ca/Kobashi2/internal/desktop"
+	"github.com/david6ca/modelbridge/internal/bridge"
+	"github.com/david6ca/modelbridge/internal/desktop"
 )
 
 var Version = "dev"

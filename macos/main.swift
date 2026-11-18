@@ -976,7 +976,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTextFiel
 
     @discardableResult func createWindow(show: Bool = true) -> Bool {
         artwork["local"] = NSImage(systemSymbolName: "cpu", accessibilityDescription: nil)
-        for name in ["kobashi-icon", "github", "claude", "codex"] {
+        for name in ["github", "claude", "codex"] {
             guard let url = Bundle.main.url(forResource: name, withExtension: "png"),
                   let image = NSImage(contentsOf: url) else {
                 showError("The app is missing its \(name) artwork.")
@@ -1127,9 +1127,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTextFiel
         startupDeadline = Date().addingTimeInterval(10)
         guard let resources = Bundle.main.resourceURL else { showError("The app bundle has no resources."); return }
         #if arch(arm64)
-        let binary = "kobashi-arm64"
+        let binary = "modelbridge-arm64"
         #else
-        let binary = "kobashi-x64"
+        let binary = "modelbridge-x64"
         #endif
         let process = Process()
         process.executableURL = resources.appendingPathComponent("bin/\(binary)")
@@ -1348,7 +1348,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTextFiel
                         let menu = NSMenu()
                         for server in servers {
                             guard let url = server["url"] as? String else { continue }
-                            let item = NSMenuItem(title: "\(server["name"] as? String ?? "Kobashi") - \(url)",
+                            let item = NSMenuItem(title: "\(server["name"] as? String ?? "ModelBridge") - \(url)",
                                                   action: #selector(self.selectServer(_:)), keyEquivalent: "")
                             item.target = self
                             item.representedObject = url
@@ -2061,7 +2061,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTextFiel
         if !NSWorkspace.shared.open(url) { notice = "Could not open GitHub."; render() }
     }
     @objc func openProject() {
-        if !NSWorkspace.shared.open(URL(string: "https://github.com/david6ca/Kobashi2")!) {
+        if !NSWorkspace.shared.open(URL(string: "https://github.com/david6ca/modelbridge")!) {
             notice = "Could not open the project page."
             render()
         }

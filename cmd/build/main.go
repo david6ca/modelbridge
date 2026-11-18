@@ -197,7 +197,7 @@ func build(target, destination string) error {
 	if err = os.MkdirAll(scratchRoot, 0700); err != nil {
 		return err
 	}
-	workspace, err := os.MkdirTemp(scratchRoot, "kobashi-native-build-")
+	workspace, err := os.MkdirTemp(scratchRoot, "modelbridge-native-build-")
 	if err != nil {
 		return err
 	}
@@ -213,7 +213,7 @@ func build(target, destination string) error {
 			return err
 		}
 	}
-	for _, name := range []string{"native.go", "kobashi-icon.ico", "kobashi-icon.png", "github.png", "claude.png", "codex.png"} {
+	for _, name := range []string{"native.go", "modelbridge-icon.ico", "modelbridge-icon.png", "github.png", "claude.png", "codex.png"} {
 		if err = copyFile(filepath.Join(source, "assets", name), filepath.Join(workspace, "assets", name)); err != nil {
 			return err
 		}
@@ -236,16 +236,16 @@ func build(target, destination string) error {
 	}
 	name := "ModelBridge.exe"
 	if target == "windows" {
-		icon, readErr := os.ReadFile(filepath.Join(workspace, "assets", "kobashi-icon.ico"))
+		icon, readErr := os.ReadFile(filepath.Join(workspace, "assets", "modelbridge-icon.ico"))
 		if readErr != nil {
 			return readErr
 		}
-		if err = writeWindowsResources(filepath.Join(workspace, "cmd", "kobashi", "resources_windows_amd64.syso"), icon, pkg.Version); err != nil {
+		if err = writeWindowsResources(filepath.Join(workspace, "cmd", "modelbridge", "resources_windows_amd64.syso"), icon, pkg.Version); err != nil {
 			return err
 		}
 		winEnv := envWith(env, "GOOS", "windows")
 		winEnv = envWith(winEnv, "GOARCH", "amd64")
-		if err = run(workspace, winEnv, "go", "build", "-trimpath", "-ldflags", "-s -w -H=windowsgui -X main.Version="+pkg.Version, "-o", filepath.Join(output, name), "./cmd/kobashi"); err != nil {
+		if err = run(workspace, winEnv, "go", "build", "-trimpath", "-ldflags", "-s -w -H=windowsgui -X main.Version="+pkg.Version, "-o", filepath.Join(output, name), "./cmd/modelbridge"); err != nil {
 			return err
 		}
 	} else {
@@ -276,7 +276,7 @@ func buildMac(workspace, output string, env []string, version string) error {
 	if err := os.MkdirAll(filepath.Join(app, "MacOS"), 0700); err != nil {
 		return err
 	}
-	for _, name := range []string{"kobashi-icon.png", "github.png", "claude.png", "codex.png"} {
+	for _, name := range []string{"modelbridge-icon.png", "github.png", "claude.png", "codex.png"} {
 		if err := copyFile(filepath.Join(workspace, "assets", name), filepath.Join(app, "Resources", name)); err != nil {
 			return err
 		}
@@ -297,13 +297,13 @@ func buildMac(workspace, output string, env []string, version string) error {
 	for _, architecture := range []string{"arm64", "amd64"} {
 		childEnv := envWith(env, "GOOS", "darwin")
 		childEnv = envWith(childEnv, "GOARCH", architecture)
-		binary := "kobashi-arm64"
+		binary := "modelbridge-arm64"
 		swiftArch := "arm64"
 		if architecture == "amd64" {
-			binary = "kobashi-x64"
+			binary = "modelbridge-x64"
 			swiftArch = "x86_64"
 		}
-		if err := run(workspace, childEnv, "go", "build", "-trimpath", "-ldflags", "-s -w -X main.Version="+version, "-o", filepath.Join(binaries, binary), "./cmd/kobashi"); err != nil {
+		if err := run(workspace, childEnv, "go", "build", "-trimpath", "-ldflags", "-s -w -X main.Version="+version, "-o", filepath.Join(binaries, binary), "./cmd/modelbridge"); err != nil {
 			return err
 		}
 		swift := filepath.Join(output, "cocoa-"+architecture)
@@ -312,10 +312,10 @@ func buildMac(workspace, output string, env []string, version string) error {
 		}
 		swiftBinaries = append(swiftBinaries, swift)
 	}
-	if err := run(workspace, env, "lipo", "-create", swiftBinaries[0], swiftBinaries[1], "-output", filepath.Join(app, "MacOS", "kobashi")); err != nil {
+	if err := run(workspace, env, "lipo", "-create", swiftBinaries[0], swiftBinaries[1], "-output", filepath.Join(app, "MacOS", "ModelBridge")); err != nil {
 		return err
 	}
-	if err := run(workspace, env, "xcrun", "--toolchain", "XcodeDefault", "swift", "-module-cache-path", filepath.Join(workspace, "swift-module-cache"), "macos/icon.swift", filepath.Join(workspace, "assets", "kobashi-icon.png"), filepath.Join(output, "AppIcon.iconset")); err != nil {
+	if err := run(workspace, env, "xcrun", "--toolchain", "XcodeDefault", "swift", "-module-cache-path", filepath.Join(workspace, "swift-module-cache"), "macos/icon.swift", filepath.Join(workspace, "assets", "modelbridge-icon.png"), filepath.Join(output, "AppIcon.iconset")); err != nil {
 		return err
 	}
 	if err := run(workspace, env, "iconutil", "-c", "icns", filepath.Join(output, "AppIcon.iconset"), "-o", filepath.Join(app, "Resources", "AppIcon.icns")); err != nil {
@@ -328,7 +328,7 @@ func buildMac(workspace, output string, env []string, version string) error {
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict><key>CFBundleName</key><string>ModelBridge</string><key>CFBundleDisplayName</key><string>ModelBridge</string>
 <key>CFBundleIdentifier</key><string>com.pomegram.modelbridge</string><key>CFBundleVersion</key><string>` + version + `</string>
-<key>CFBundleShortVersionString</key><string>` + version + `</string><key>CFBundleExecutable</key><string>kobashi</string>
+<key>CFBundleShortVersionString</key><string>` + version + `</string><key>CFBundleExecutable</key><string>ModelBridge</string>
 <key>CFBundleIconFile</key><string>AppIcon</string><key>CFBundlePackageType</key><string>APPL</string>
 <key>CFBundleDevelopmentRegion</key><string>en</string><key>CFBundleLocalizations</key><array><string>en</string><string>zh-Hans</string><string>zh-Hant</string><string>ja</string><string>ko</string><string>de</string><string>fr</string><string>pt-BR</string><string>es</string><string>ar</string><string>hi</string><string>ru</string><string>vi</string></array>
 <key>LSMinimumSystemVersion</key><string>13.0</string><key>NSHighResolutionCapable</key><true/>

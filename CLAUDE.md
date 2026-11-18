@@ -4,8 +4,10 @@ Local bridge that proxies inference for Codex and Claude Desktop.
 
 The app's display name and release artifacts are `ModelBridge`, `ModelBridge.app`, and
 `ModelBridge.exe`. The macOS bundle ID is `com.pomegram.modelbridge`.
-Preserve existing state identifiers: `~/.kobashi`, startup registration keys, ports, and the `Kobashi`
-client provider. Do not rename or duplicate saved logins or providers.
+Preserve existing state identifiers: `~/.kobashi`, startup registration keys, ports, and the `kobashi`
+client provider identifier. Use ModelBridge as its display name, accepting the
+legacy Kobashi name when updating the same registration. Do not duplicate saved
+logins or providers or change their identifiers.
 
 ## macOS release and local installation
 
@@ -55,7 +57,8 @@ styling. Account information has no border. Native chrome does not mirror in RTL
 The account popover, Settings, and privacy window also use native materials,
 respecting Reduce Transparency and Increase Contrast. Privacy Statement is
 only in the macOS app menu. Main-screen errors temporarily replace usage details
-without moving account information or toggles. Windows retains its existing layout.
+without moving account information or toggles. Windows shares the compact main
+and Settings geometry, retaining its native titlebar and Win32 controls.
 Mouse selection has no thick row border; keyboard focus remains visible around
 the relevant control.
 Settings has no quit link; keep quitting available through the tray/menu bar.

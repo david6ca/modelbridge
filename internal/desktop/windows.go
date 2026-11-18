@@ -18,9 +18,9 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/david6ca/Kobashi2/assets"
-	"github.com/david6ca/Kobashi2/internal/bridge"
-	"github.com/david6ca/Kobashi2/internal/localization"
+	"github.com/david6ca/modelbridge/assets"
+	"github.com/david6ca/modelbridge/internal/bridge"
+	"github.com/david6ca/modelbridge/internal/localization"
 )
 
 var user = syscall.NewLazyDLL("user32.dll")
@@ -34,7 +34,6 @@ const trayMessage = 0x8002
 const (
 	windowWidth         = 400
 	windowHeight        = 370
-	footerY             = 338
 	windowStyle         = 0x02ca0000
 	windowExtendedStyle = 0x10000
 )
@@ -78,6 +77,7 @@ const (
 	idLanguage
 	idPrivacy
 	idSettingsBack
+	idAccountDisconnect
 )
 
 type point struct{ X, Y int32 }
@@ -237,12 +237,11 @@ func (w *Window) build() error {
 		id, x, y, width, height int
 		style                   uintptr
 	}{
-		{"STATIC", "ModelBridge", "all", 1, 28, 24, 254, 28, 0},
-		{"STATIC", "Starting...", "starting", 13, 40, 183, 320, 24, 1},
-		{"BUTTON", "Se&ttings", "all", idSettings, 336, 24, 32, 32, 0x10000},
-		{"BUTTON", "Not &Connected", "sign-in", idConnect, 95, 160, 210, 42, 0x10000 | 1},
-		{"STATIC", "Have an access token?", "idle", 3, 99, 215, 119, 24, 0},
-		{"BUTTON", "Paste it instead", "idle", idTokenView, 218, 215, 91, 24, 0x10000},
+		{"STATIC", "Starting...", "starting", 13, 40, 118, 320, 24, 1},
+		{"BUTTON", "Se&ttings", "all", idSettings, 344, 8, 32, 32, 0x10000},
+		{"BUTTON", "Not &Connected", "sign-in", idConnect, 95, 100, 210, 42, 0x10000 | 1},
+		{"STATIC", "Have an access token?", "idle", 3, 99, 155, 119, 24, 0},
+		{"BUTTON", "Paste it instead", "idle", idTokenView, 218, 155, 91, 24, 0x10000},
 		{"STATIC", "Access token", "token", 4, 60, 148, 280, 12, 0},
 		{"EDIT", "", "token", idToken, 73, 172, 254, 22, 0x10000 | 0x80 | 0x20},
 		{"BUTTON", "Not Connected", "token", idLogin, 60, 215, 280, 40, 0x10000 | 1},
@@ -250,23 +249,22 @@ func (w *Window) build() error {
 		{"BUTTON", "Open GitHub", "device", idBrowser, 70, 174, 260, 24, 0x10000},
 		{"STATIC", "", "device", 6, 53, 206, 294, 42, 1},
 		{"BUTTON", "&Copy", "device", idCopy, 166, 253, 68, 24, 0x10000},
-		{"STATIC", "", "connected", 7, 50, 87, 175, 27, 0},
-		{"BUTTON", "Connecte&d", "connected", idDisconnect, 237, 87, 84, 28, 0x10000},
-		{"BUTTON", "Accounts", "all", idAccounts, 321, 87, 28, 28, 0x10000},
+		{"STATIC", "", "connected", 7, 28, 8, 204, 24, 0},
+		{"BUTTON", "Connecte&d", "connected", idDisconnect, 236, 8, 76, 28, 0x10000},
+		{"BUTTON", "Accounts", "all", idAccounts, 312, 8, 28, 28, 0x10000},
 		{"BUTTON", "Cancel", "all", idCancelAccount, 32, 60, 76, 28, 0x10000},
-		{"STATIC", "", "connected", 8, 50, 128, 299, 16, 0},
-		{"BUTTON", "&Codex", "connected", idCodex, 40, 184, 320, 44, 0x10000 | 3},
-		{"BUTTON", "C&laude Code", "connected", idClaude, 40, 228, 320, 44, 0x10000 | 3},
-		{"BUTTON", "GitHub Cop&ilot", "connected", idCopilot, 40, 272, 320, 44, 0x10000 | 3},
-		{"BUTTON", "Back", "settings", idSettingsBack, 28, 22, 32, 32, 0x10000},
-		{"STATIC", "Settings", "settings", 9, 62, 26, 274, 26, 0},
-		{"BUTTON", "&Start at login", "settings", idStartup, 32, 106, 336, 30, 0x10000 | 3},
-		{"BUTTON", "&Close to system tray", "settings", idTray, 32, 144, 336, 30, 0x10000 | 3},
-		{"STATIC", "&Appearance", "settings", idAppearanceLabel, 40, 186, 132, 24, 0},
-		{"COMBOBOX", "", "settings", idAppearance, 188, 182, 172, 30, 0x10000 | 0x200000 | 3},
-		{"STATIC", "&Language", "settings", idLanguageLabel, 40, 226, 132, 24, 0},
-		{"COMBOBOX", "", "settings", idLanguage, 188, 222, 172, 30, 0x10000 | 0x200000 | 3},
-		{"BUTTON", "Privacy Statement", "settings", idPrivacy, 32, 262, 336, 28, 0x10000},
+		{"STATIC", "", "connected", 8, 28, 42, 344, 16, 0},
+		{"BUTTON", "&Codex", "connected", idCodex, 18, 109, 364, 44, 0x10000 | 3},
+		{"BUTTON", "C&laude Code", "connected", idClaude, 18, 153, 364, 44, 0x10000 | 3},
+		{"BUTTON", "GitHub Cop&ilot", "connected", idCopilot, 18, 197, 364, 44, 0x10000 | 3},
+		{"BUTTON", "Back", "settings", idSettingsBack, 16, 0, 32, 32, 0x10000},
+		{"STATIC", "Settings", "settings", 9, 48, 8, 328, 22, 0},
+		{"BUTTON", "&Start at login", "settings", idStartup, 16, 48, 368, 32, 0x10000 | 3},
+		{"BUTTON", "&Close to system tray", "settings", idTray, 16, 84, 368, 32, 0x10000 | 3},
+		{"STATIC", "&Appearance", "settings", idAppearanceLabel, 24, 131, 152, 18, 0},
+		{"COMBOBOX", "", "settings", idAppearance, 200, 124, 176, 32, 0x10000 | 0x200000 | 3},
+		{"STATIC", "&Language", "settings", idLanguageLabel, 24, 171, 152, 18, 0},
+		{"COMBOBOX", "", "settings", idLanguage, 200, 164, 176, 32, 0x10000 | 0x200000 | 3},
 		/*
 			{"BUTTON", "Connect to &Server", "settings", idClientView, 32, 294, 164, 28, 0x10000},
 			{"BUTTON", "Share this &ModelBridge", "settings", idServerView, 204, 294, 164, 28, 0x10000},
@@ -287,8 +285,6 @@ func (w *Window) build() error {
 			{"BUTTON", "&Back", "network", idNetworkDone, 32, 328, 336, 32, 0x10000},
 		*/
 		{"STATIC", "", "all", 12, 32, 252, 336, 70, 0},
-		{"BUTTON", "&Done", "settings", idDone, 32, 300, 336, 32, 0x10000},
-		{"BUTTON", "Version", "all", idProject, 252, footerY, 116, 24, 0x10000},
 	}
 	for _, item := range items {
 		if err := w.add(item.class, item.title, item.view, item.id, item.x, item.y, item.width, item.height, item.style); err != nil {
@@ -317,8 +313,8 @@ func (w *Window) fonts() {
 		f, _, _ := gdi.NewProc("CreateFontW").Call(uintptr(int64(-size*w.dpi/96)), 0, 0, 0, uintptr(weight), 0, 0, 0, 1, 0, 0, 5, 0, uintptr(unsafe.Pointer(wide(name))))
 		return f
 	}
-	w.font = makeFont(14, 400, "Segoe UI")
-	w.heading = makeFont(20, 700, "Segoe UI")
+	w.font = makeFont(12, 400, "Segoe UI")
+	w.heading = makeFont(13, 400, "Segoe UI")
 	w.small = makeFont(12, 400, "Segoe UI")
 	w.tiny = makeFont(11, 400, "Segoe UI")
 	w.bold = makeFont(14, 600, "Segoe UI")
@@ -478,15 +474,12 @@ func (w *Window) render() {
 		// || (c.view == "network" && (w.view == "client" || w.view == "server"))
 		if c.id == 8 {
 			_, _, show = w.usage()
-			show = show && w.view == "connected"
+			show = show && w.view == "connected" && w.notice == "" && w.refreshError == "" && text(w.status["error"]) == ""
 		}
 		if c.id == 12 && w.view == "connected" {
 			show = w.notice != "" || w.refreshError != "" || text(w.status["error"]) != ""
 		}
 		if c.id == 1 && w.view == "connected" && (w.notice != "" || w.refreshError != "" || text(w.status["error"]) != "") {
-			show = false
-		}
-		if c.id == 9 && (w.notice != "" || w.refreshError != "" || text(w.status["error"]) != "" || text(w.settings["error"]) != "") {
 			show = false
 		}
 		if w.view == "starting" {
@@ -500,7 +493,7 @@ func (w *Window) render() {
 		proc("ShowWindow", c.handle, visible)
 		if c.id >= idConnect && c.id != idDone {
 			enabled := uintptr(1)
-			if (w.busy && c.id != idAccounts) || (w.view == "starting" && c.id != idProject) {
+			if (w.busy && c.id != idAccounts && c.id != idDisconnect) || (w.view == "starting" && c.id != idProject) {
 				enabled = 0
 			}
 			if c.id == idLogin && w.tokenValue() == "" {
@@ -591,7 +584,6 @@ func (w *Window) render() {
 		notice = "Waiting for authorization..."
 	}
 	w.setText(12, w.tr(notice))
-	w.setText(idProject, "v"+text(w.status["version"]))
 	w.applyTheme()
 	proc("RedrawWindow", w.Handle, 0, 0, 0x85)
 }
@@ -839,6 +831,12 @@ func (w *Window) command(id int) {
 	case idCopilot:
 		w.post("/api/toggle-copilot", map[string]any{})
 	case idDisconnect:
+		if err := w.showAccounts(); err != nil {
+			w.notice = err.Error()
+			w.render()
+		}
+	case idAccountDisconnect:
+		w.closeAccounts()
 		w.post("/api/disconnect", map[string]any{})
 	case idSettings:
 		if w.view == "settings" {
@@ -906,11 +904,6 @@ func (w *Window) command(id int) {
 		}
 	case idPrivacy:
 		w.showPrivacy()
-	case idProject:
-		if err := OpenURL("https://github.com/david6ca/Kobashi2"); err != nil {
-			w.notice = err.Error()
-			w.render()
-		}
 	case idQuit:
 		w.quit()
 	}
@@ -1004,6 +997,7 @@ func (w *Window) trayMenu() {
 	menu := proc("CreatePopupMenu")
 	defer proc("DestroyMenu", menu)
 	proc("AppendMenuW", menu, 0, 1, uintptr(unsafe.Pointer(wide(w.tr("Show ModelBridge")))))
+	proc("AppendMenuW", menu, 0, 3, uintptr(unsafe.Pointer(wide(w.tr("Privacy Statement")))))
 	proc("AppendMenuW", menu, 0, 2, uintptr(unsafe.Pointer(wide(w.tr("Quit ModelBridge")))))
 	var p point
 	proc("GetCursorPos", uintptr(unsafe.Pointer(&p)))
@@ -1013,6 +1007,8 @@ func (w *Window) trayMenu() {
 		w.Show()
 	} else if selected == 2 {
 		w.quit()
+	} else if selected == 3 {
+		w.showPrivacy()
 	}
 
 	proc("PostMessageW", w.Handle, 0, 0, 0)

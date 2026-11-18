@@ -175,7 +175,7 @@ func (a *App) restoreCopilot() error {
 			return fmt.Errorf("Copilot Bridge remains enabled; wait for its local sessions to be idle before disabling it: %w", err)
 		}
 		if _, ok := saved[selected.ID]; !ok {
-			return errors.New("Copilot Bridge remains enabled; a session has no saved original provider. Select a non-Kobashi model in that session before disabling the bridge")
+			return errors.New("Copilot Bridge remains enabled; a session has no saved original provider. Select a non-ModelBridge model in that session before disabling the bridge")
 		}
 	}
 	ctx, cancel := context.WithTimeout(a.ctx, 40*time.Second)
@@ -217,7 +217,7 @@ func (a *App) restoreCopilot() error {
 			if err = control.selectModel(ctx, saved[selected.ID]); err != nil {
 				if copilotControlInterrupted(err) {
 					log.Printf("Copilot restore confirmation interrupted for session %s: %v", selected.ID, err)
-					return errors.New("Copilot disconnected during restore. Bridge stays enabled; when idle, select a non-Kobashi model before disabling it")
+					return errors.New("Copilot disconnected during restore. Bridge stays enabled; when idle, select a non-ModelBridge model before disabling it")
 				}
 				return fmt.Errorf("Copilot Bridge remains enabled; could not restore a session's original provider: %w", err)
 			}
@@ -229,7 +229,7 @@ func (a *App) restoreCopilot() error {
 		return err
 	}
 	if len(remaining) != 0 {
-		return errors.New("Copilot Bridge remains enabled; some sessions still use Kobashi")
+		return errors.New("Copilot Bridge remains enabled; some sessions still use ModelBridge")
 	}
 	return nil
 }
@@ -443,7 +443,7 @@ func copilotSetupModel(models []object, preferred string) (object, string, error
 		}
 	}
 	if first == nil {
-		return nil, "", errors.New("the Kobashi account has no compatible Copilot app chat models")
+		return nil, "", errors.New("the ModelBridge account has no compatible Copilot app chat models")
 	}
 	wire := "completions"
 	if contains(stringsOf(first["supported_endpoints"]), "/responses") {
@@ -530,8 +530,8 @@ func (a *App) configureCopilot(selected copilotSelection, selectionErr error, cu
 			continue
 		}
 		settings = obj(provider["settings"])
-		if provider["kind"] != "custom" || provider["name"] != "Kobashi" || settings["managedBy"] != "Kobashi" {
-			return rollback(errors.New("the Kobashi provider identifier is already used by another configuration; it was not changed"))
+		if provider["kind"] != "custom" || (provider["name"] != "Kobashi" && provider["name"] != "ModelBridge") || settings["managedBy"] != "Kobashi" {
+			return rollback(errors.New("the ModelBridge provider identifier is already used by another configuration; it was not changed"))
 		}
 		settings = clone(settings)
 		registeredProvider = provider
@@ -573,9 +573,9 @@ func (a *App) configureCopilot(selected copilotSelection, selectionErr error, cu
 	settings["baseUrl"], settings["wireApi"] = a.CopilotURL(), providerWire
 	settings["authKind"], settings["managedBy"] = "api_key", "Kobashi"
 	settings["headersJson"] = "{}"
-	if registeredProvider["hasSecret"] != true || !bytes.Equal(jsonBytes(registeredProvider["settings"]), jsonBytes(settings)) {
+	if registeredProvider["hasSecret"] != true || registeredProvider["name"] != "ModelBridge" || !bytes.Equal(jsonBytes(registeredProvider["settings"]), jsonBytes(settings)) {
 		if _, err = control.call(ctx, object{"type": "upsert_model_provider",
-			"provider": object{"id": copilotProviderID, "name": "Kobashi", "kind": "custom", "settings": settings},
+			"provider": object{"id": copilotProviderID, "name": "ModelBridge", "kind": "custom", "settings": settings},
 			"secret":   object{"kind": "apiKey", "value": "PROXY_MANAGED"}}, "model_provider_upserted"); err != nil {
 			return rollback(err)
 		}
@@ -621,14 +621,14 @@ func (a *App) configureCopilot(selected copilotSelection, selectionErr error, cu
 			provider := obj(item)
 			if provider["id"] == copilotProviderID {
 				saved := obj(provider["settings"])
-				verified = provider["name"] == "Kobashi" && provider["kind"] == "custom" && provider["hasSecret"] == true &&
+				verified = provider["name"] == "ModelBridge" && provider["kind"] == "custom" && provider["hasSecret"] == true &&
 					saved["baseUrl"] == a.CopilotURL() && saved["wireApi"] == providerWire && saved["authKind"] == "api_key" &&
 					saved["managedBy"] == "Kobashi"
 			}
 		}
 	}
 	if !verified {
-		return rollback(errors.New("Copilot app did not persist the Kobashi provider and its credential"))
+		return rollback(errors.New("Copilot app did not persist the ModelBridge provider and its credential"))
 	}
 	result, err = control.call(ctx, object{"type": "list_provider_models", "provider_id": copilotProviderID}, "provider_models_list")
 	if err != nil {
@@ -646,12 +646,12 @@ func (a *App) configureCopilot(selected copilotSelection, selectionErr error, cu
 		}
 	}
 	if !verified {
-		return rollback(errors.New("Copilot app did not persist the Kobashi provider model"))
+		return rollback(errors.New("Copilot app did not persist the ModelBridge provider model"))
 	}
 	a.copilotRouting.instance = control.instance
 	pending := func(reason error) (string, error) {
 		log.Printf("Copilot provider registered without switching a session: %v", reason)
-		return "Kobashi registered; no session was switched. Local sessions connect automatically when idle.", nil
+		return "ModelBridge registered; no session was switched. Local sessions connect automatically when idle.", nil
 	}
 	if selectionErr != nil {
 		return pending(selectionErr)
@@ -716,9 +716,9 @@ func (a *App) configureCopilot(selected copilotSelection, selectionErr error, cu
 		// A lost acknowledgement does not cancel an accepted app command.
 		if copilotControlInterrupted(err) {
 			log.Printf("Copilot model switch confirmation interrupted for session %s: %v", selected.ID, err)
-			return "", errors.New("Copilot disconnected during the model switch. Bridge stays enabled; when idle, select Kobashi in Copilot's model picker")
+			return "", errors.New("Copilot disconnected during the model switch. Bridge stays enabled; when idle, select ModelBridge in Copilot's model picker")
 		}
-		return "", fmt.Errorf("Kobashi provider registered and Copilot Bridge remains enabled; could not confirm the model switch: %w", err)
+		return "", fmt.Errorf("ModelBridge provider registered and Copilot Bridge remains enabled; could not confirm the model switch: %w", err)
 	}
-	return "Kobashi provider registered and selected for the current local session.", nil
+	return "ModelBridge provider registered and selected for the current local session.", nil
 }

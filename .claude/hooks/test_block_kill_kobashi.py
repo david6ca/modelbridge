@@ -46,6 +46,10 @@ class KobashiHookTests(unittest.TestCase):
             "Stop-Process -Name Kobashi",
             "taskkill /IM Kobashi.exe /F",
             "Stop-Process -Name Claude",
+            "pkill -f ModelBridge.app",
+            "killall ModelBridge",
+            "Stop-Process -Name ModelBridge",
+            "taskkill /IM ModelBridge.exe /F",
         ):
             with self.subTest(command=command):
                 result = self.run_hook({"tool_input": {"command": command}})

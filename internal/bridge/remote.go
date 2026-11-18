@@ -105,7 +105,7 @@ func (a *App) configureShared(body object) (any, error) {
 		return nil, err
 	}
 	if next.Enabled && a.snapshot().Token == "" {
-		return nil, errors.New("connect to GitHub on this Kobashi before enabling Server")
+		return nil, errors.New("connect to GitHub on this ModelBridge before enabling Server")
 	}
 	previous := a.shared
 	if next.Enabled && a.sharedServer != nil && next.Listen != previous.Listen {
@@ -190,7 +190,7 @@ func (a *App) serveShared(w http.ResponseWriter, r *http.Request) {
 	token := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
 	if !config.Enabled || !validAccessToken(config.Token) ||
 		subtle.ConstantTimeCompare([]byte(token), []byte(config.Token)) != 1 {
-		respond(w, 401, object{"error": "Valid Kobashi Server token required"})
+		respond(w, 401, object{"error": "Valid ModelBridge Server token required"})
 		return
 	}
 	if r.Header.Get("Origin") != "" {
@@ -206,7 +206,7 @@ func (a *App) serveShared(w http.ResponseWriter, r *http.Request) {
 			}
 			a.models.wg.Wait()
 		}
-		respond(w, 200, remoteCatalog{1, "Kobashi", a.models.visible(), state.Codex, state.Claude, state.Copilot})
+		respond(w, 200, remoteCatalog{1, "ModelBridge", a.models.visible(), state.Codex, state.Claude, state.Copilot})
 		return
 	}
 	protocol, path, found := strings.Cut(strings.TrimPrefix(r.URL.Path, "/"), "/")
@@ -246,17 +246,17 @@ func (a *App) fetchRemoteCatalog(ctx context.Context, state session) (remoteCata
 	req.Header.Set("Authorization", "Bearer "+state.RemoteToken)
 	response, err := a.remoteClient.Do(req)
 	if err != nil {
-		return catalog, fmt.Errorf("connect to Kobashi Server: %w", err)
+		return catalog, fmt.Errorf("connect to ModelBridge Server: %w", err)
 	}
 	data, err := readResponse(response, 16<<20)
 	if err != nil {
 		return catalog, err
 	}
 	if response.StatusCode != 200 {
-		return catalog, fmt.Errorf("Kobashi Server returned HTTP %d; check its address, token, and enabled bridges", response.StatusCode)
+		return catalog, fmt.Errorf("ModelBridge Server returned HTTP %d; check its address, token, and enabled bridges", response.StatusCode)
 	}
 	if json.Unmarshal(data, &catalog) != nil || catalog.Protocol != 1 || catalog.Models == nil {
-		return catalog, errors.New("Server returned an invalid Kobashi model catalog")
+		return catalog, errors.New("Server returned an invalid ModelBridge model catalog")
 	}
 	return catalog, nil
 }
@@ -273,7 +273,7 @@ func (a *App) refreshRemoteCatalog(ctx context.Context, state session) error {
 	}
 	result := buildCatalog(nil, catalog.Models)
 	if len(arr(result["models"])) == 0 {
-		sentinel := fallbackModel("kobashi-no-available-models", "No models available through Kobashi Server", 1)
+		sentinel := fallbackModel("kobashi-no-available-models", "No models available through ModelBridge Server", 1)
 		sentinel["visibility"], sentinel["supported_in_api"] = "hide", false
 		result["models"] = []any{sentinel}
 	}
@@ -341,16 +341,16 @@ func (a *App) forwardRemote(w http.ResponseWriter, r *http.Request, state sessio
 				}
 			}
 			p.Out.Header.Set("Authorization", "Bearer "+state.RemoteToken)
-			p.Out.Header.Set("User-Agent", "Kobashi-Client/"+a.options.Version)
+			p.Out.Header.Set("User-Agent", "ModelBridge-Client/"+a.options.Version)
 		},
 		ErrorHandler: func(w http.ResponseWriter, _ *http.Request, err error) {
-			log.Printf("Kobashi Server request: %v", err)
+			log.Printf("ModelBridge Server request: %v", err)
 			status := http.StatusBadGateway
 			var limit *http.MaxBytesError
 			if errors.As(err, &limit) {
 				status = http.StatusRequestEntityTooLarge
 			}
-			respond(w, status, object{"error": "Kobashi Server request failed: " + err.Error()})
+			respond(w, status, object{"error": "ModelBridge Server request failed: " + err.Error()})
 		},
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, 256<<20)

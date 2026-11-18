@@ -14,7 +14,7 @@ import (
 	"syscall"
 	"unsafe"
 
-	"github.com/david6ca/Kobashi2/assets"
+	"github.com/david6ca/modelbridge/assets"
 )
 
 const (
@@ -51,7 +51,7 @@ func themePalette(dark, high bool) palette {
 
 func (w *Window) loadArtwork() error {
 	w.artwork = map[string]image.Image{}
-	for name, data := range map[string][]byte{"kobashi": assets.Artwork, "github": assets.GitHub, "claude": assets.Claude, "codex": assets.Codex} {
+	for name, data := range map[string][]byte{"github": assets.GitHub, "claude": assets.Claude, "codex": assets.Codex} {
 		im, err := png.Decode(bytes.NewReader(data))
 		if err != nil {
 			return fmt.Errorf("load %s artwork: %w", name, err)
@@ -85,6 +85,12 @@ func credits(value float64) string {
 }
 
 func (w *Window) contentHeight() int {
+	switch w.view {
+	case "connected", "idle", "starting":
+		return 259
+	case "settings":
+		return 220
+	}
 	return windowHeight
 }
 
@@ -127,15 +133,15 @@ func (w *Window) layout() {
 		}
 		c.y = c.baseY
 		if c.id == idAccounts {
-			c.x, c.y, c.w = 321, 87, 28
+			c.x, c.y, c.w = 312, 8, 28
 			if w.view != "connected" {
-				c.x, c.y, c.w = 140, 112, 120
+				c.x, c.y, c.w = 140, 52, 120
 				if w.view == "token" {
 					c.y = 60
 				}
 			}
 		} else if c.id == idConnect {
-			c.y = 160
+			c.y = 100
 			if w.view == "token" {
 				c.y = 94
 			}
@@ -144,11 +150,13 @@ func (w *Window) layout() {
 			c.y, c.h = 252, 70
 			switch w.view {
 			case "starting":
-				c.x, c.y, c.w, c.h = 40, 150, 320, 90
+				c.x, c.y, c.w, c.h = 40, 100, 320, 90
+			case "idle":
+				c.y, c.h = 191, 44
 			case "connected":
-				c.y, c.h, c.w = 24, 32, 248
+				c.x, c.y, c.h, c.w = 28, 42, 32, 344
 			case "settings":
-				c.y, c.h = 70, 32
+				c.x, c.y, c.w, c.h = 152, 0, 224, 40
 			// case "client", "server":
 			// 	c.y, c.h = 280, 42
 			case "token":
@@ -351,21 +359,12 @@ func (w *Window) paintWindow(dc uintptr) {
 		p.fill(0, 0, windowWidth, w.contentHeight(), c.background)
 		switch w.view {
 		case "connected":
-			p.round(32, 72, 336, 90, 12, c.panel, c.border)
-			p.round(32, 178, 336, 144, 12, c.panel, c.border)
-			if used, total, ok := w.usage(); ok {
-				p.round(50, 146, 299, 5, 3, c.toggle, c.toggle)
-				width := int(math.Min(1, used/total) * 299)
-				if used > 0 {
-					width = max(3, width)
-					saved, _, _ := gdi.NewProc("SaveDC").Call(p.dc)
-					region, _, _ := gdi.NewProc("CreateRoundRectRgn").Call(p.s(50), p.s(146), p.s(50+width), p.s(151), p.s(6), p.s(6))
-					gdi.NewProc("ExtSelectClipRgn").Call(p.dc, region, 1)
-					p.gradient(50, 146, width, 5)
-					gdi.NewProc("RestoreDC").Call(p.dc, saved)
-					gdi.NewProc("DeleteObject").Call(region)
-				}
+			header := uint32(0)
+			if w.highContrast {
+				header = c.background
 			}
+			p.fill(0, 0, windowWidth, 91, header)
+			p.fill(0, 91, windowWidth, w.contentHeight()-91, c.panel)
 		case "device":
 			p.round(32, 126, 336, 170, 12, c.input, c.border)
 		case "token":
@@ -403,10 +402,15 @@ func (w *Window) paintControl(c control, dc uintptr) {
 	w.buffered(dc, c.w, c.h, func(p painter) {
 		colors := w.palette
 		bg := colors.background
+		if w.view == "connected" && c.y < 91 && !w.highContrast {
+			header := themePalette(true, false)
+			colors.text, colors.muted, colors.hover = header.text, header.muted, header.hover
+			colors.connected, colors.danger, colors.accent = header.connected, header.danger, header.accent
+			bg = 0
+		}
 		if c.view == "device" && c.id != 12 || c.id == 7 || c.id == 8 || c.id == idDisconnect {
-			bg = colors.input
-			if c.view != "device" {
-				bg = colors.panel
+			if c.view == "device" {
+				bg = colors.input
 			}
 		}
 		if c.id == idClaude || c.id == idCodex || c.id == idCopilot {
@@ -425,21 +429,10 @@ func (w *Window) paintControl(c control, dc uintptr) {
 			p.text(title, 0, 0, c.w, c.h, w.font, colors.muted, 0x25)
 		case idDisconnect, idAccounts:
 			if w.view == "connected" {
-				// Clip the common outline to each half of the split button.
-				x := 0
-				if c.id == idAccounts {
-					x = -84
-				}
-				p.round(x, 0, 112, 28, 8, colors.panel, colors.border)
 				if c.hover {
-					fill, border := colors.hover, colors.hover
-					if c.id == idDisconnect {
-						fill, border = colors.panel, colors.connected
-					}
-					p.round(2, 2, c.w-4, c.h-4, 5, fill, border)
+					p.round(0, 0, c.w, c.h, 5, colors.hover, colors.hover)
 				}
 				if c.id == idAccounts {
-					p.line(0, 5, 0, 23, 1, colors.border)
 					p.line(9, 12, 14, 17, 1, colors.muted)
 					p.line(14, 17, 19, 12, 1, colors.muted)
 				} else {
@@ -448,9 +441,6 @@ func (w *Window) paintControl(c control, dc uintptr) {
 			} else {
 				p.text(title, 0, 0, c.w, c.h, w.small, colors.accent, 0x825)
 			}
-		case 1:
-			p.artwork("kobashi", 2, 0, 28, bg, 0, false)
-			p.gradientText(title, 34, 1, c.w-34, 27, w.heading)
 		case 3, 4, 10, 11, 12, 21, 22, 24, 25:
 			rgb := colors.muted
 			if c.id == 12 && (w.notice != "" || w.refreshError != "") && w.notice != "Working..." && w.view != "quitting" {
@@ -482,11 +472,10 @@ func (w *Window) paintControl(c control, dc uintptr) {
 			gdi.NewProc("SelectObject").Call(p.dc, w.small)
 			gdi.NewProc("GetTextExtentPoint32W").Call(p.dc, uintptr(unsafe.Pointer(wide(title))), uintptr(len(syscall.StringToUTF16(title))-1), uintptr(unsafe.Pointer(&extent)))
 			width := min(c.w, int(extent.X)*96/w.dpi+38)
-			p.round(0, 0, width, c.h, 13, colors.badge, colors.border)
 			// if w.status["authMethod"] != "remote" {
-			p.artwork("github", 5, 5, 16, colors.badge, colors.accent, true)
+			p.artwork("github", 0, 4, 16, bg, colors.text, true)
 			// }
-			p.text(title, 27, 0, width-35, c.h, w.small, colors.accent, 0x8824)
+			p.text(title, 24, 0, width-24, c.h, w.heading, colors.text, 0x8824)
 		case 8:
 			used, total, _ := w.usage()
 			p.text(w.tr("AI credits this cycle"), 0, 0, 170, c.h, w.tiny, colors.muted, 0x824)
@@ -494,7 +483,7 @@ func (w *Window) paintControl(c control, dc uintptr) {
 		case 9, 20, 23:
 			p.text(title, 0, 0, c.w, c.h, w.heading, fg, 0x824)
 		case idAppearanceLabel, idLanguageLabel:
-			p.text(title, 0, 0, c.w, c.h, w.font, fg, 0x824)
+			p.text(title, 0, 0, c.w, c.h, w.font, fg, 0x24)
 		case idClaude, idCodex, idCopilot:
 			p.round(10, 6, 32, 32, 8, colors.tile, colors.border)
 			if c.id == idClaude {
@@ -504,14 +493,14 @@ func (w *Window) paintControl(c control, dc uintptr) {
 			} else {
 				p.artwork("codex", 14, 10, 24, colors.tile, colors.text, true)
 			}
-			p.text(title, 54, 2, 180, 20, w.small, colors.muted, 0x24)
+			p.text(title, 54, 2, 180, 20, w.small, fg, 0x24)
 			on := proc("SendMessageW", c.handle, 0xf0, 0, 0) == 1
 			word, dot := bridgeStatusText(c.id, on, w.pendingBridge == c.id), colors.disconnected
 			if on {
 				dot = colors.connected
 			}
 			p.round(58, 29, 8, 8, 4, dot, dot)
-			p.text(w.tr(word), 74, 20, 180, 24, w.font, fg, 0x824)
+			p.text(w.tr(word), 74, 20, 180, 24, w.small, dot, 0x824)
 			track, knob := colors.toggle, 2
 			if on {
 				track, knob = colors.on, 22
@@ -519,25 +508,28 @@ func (w *Window) paintControl(c control, dc uintptr) {
 			p.round(c.w-55, 10, 44, 24, 12, track, colors.border)
 			p.round(c.w-55+knob, 13, 18, 18, 9, colors.knob, colors.knob)
 		case idStartup, idTray:
-			p.text(title, 8, 4, 288, 24, w.bold, fg, 0x24)
+			p.text(title, 8, 4, c.w-48, 24, w.small, fg, 0x24)
 			fill, border := colors.button, colors.muted
 			checked := proc("SendMessageW", c.handle, 0xf0, 0, 0) == 1
 			if checked {
 				fill, border = colors.on, colors.on
 			}
-			p.round(308, 6, 20, 20, 4, fill, border)
+			x := c.w - 28
+			p.round(x, 6, 20, 20, 4, fill, border)
 			if checked {
-				p.line(312, 16, 316, 20, 2, colors.knob)
-				p.line(316, 20, 324, 11, 2, colors.knob)
+				p.line(x+4, 16, x+8, 20, 2, colors.knob)
+				p.line(x+8, 20, x+16, 11, 2, colors.knob)
 			}
 		case idSettingsBack:
 			p.line(19, 9, 12, 16, 2, colors.muted)
 			p.line(12, 16, 19, 23, 2, colors.muted)
-		case idTokenView, idBrowser, idProject:
-			rgb, flags := colors.accent, uintptr(0x825)
-			if c.id == idProject {
-				rgb, flags = colors.muted, 0x826
+		case idSettings:
+			if c.hover {
+				p.round(0, 0, c.w, c.h, 6, colors.hover, colors.hover)
 			}
+			p.text("\ue713", 0, 0, c.w, c.h, w.symbolFont, colors.muted, 0x825)
+		case idTokenView, idBrowser:
+			rgb, flags := colors.accent, uintptr(0x825)
 			p.text(title, 0, 0, c.w, c.h, w.small, rgb, flags)
 		default:
 			if c.id >= accountControlBase {
@@ -590,7 +582,7 @@ func (w *Window) paintControl(c control, dc uintptr) {
 		if c.class == "BUTTON" && proc("GetFocus") == c.handle && proc("SendMessageW", w.Handle, 0x129, 0, 0)&1 == 0 {
 			x, y, right, bottom := 2, 2, c.w-2, c.h-2
 			if c.id == idStartup || c.id == idTray {
-				x, y, right, bottom = 304, 2, 332, 30
+				x, y, right, bottom = c.w-32, 2, c.w-4, 30
 			} else if c.id == idClaude || c.id == idCodex || c.id == idCopilot {
 				x, y, right, bottom = c.w-59, 6, c.w-7, 38
 			}

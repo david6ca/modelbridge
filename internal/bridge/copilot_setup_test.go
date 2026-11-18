@@ -277,7 +277,7 @@ func TestCopilotAutomaticSetupSelectsCurrentSession(t *testing.T) {
 }
 
 func TestCopilotRegistrationRepairsOnlyChangedConfiguration(t *testing.T) {
-	for _, field := range []string{"credential", "model"} {
+	for _, field := range []string{"credential", "model", "legacy-name"} {
 		t.Run(field, func(t *testing.T) {
 			a := testApp(t, nil)
 			mock := mockCopilotSetup(t, a)
@@ -289,6 +289,8 @@ func TestCopilotRegistrationRepairsOnlyChangedConfiguration(t *testing.T) {
 			mock.mu.Lock()
 			if field == "credential" {
 				mock.providers[1]["hasSecret"] = false
+			} else if field == "legacy-name" {
+				mock.providers[1]["name"] = "Kobashi"
 			} else {
 				mock.models[0]["displayName"] = "Stale model metadata"
 			}
@@ -308,9 +310,14 @@ func TestCopilotRegistrationRepairsOnlyChangedConfiguration(t *testing.T) {
 					models++
 				}
 			}
-			if (field == "credential" && (providers != 1 || models != 0)) ||
+			if ((field == "credential" || field == "legacy-name") && (providers != 1 || models != 0)) ||
 				(field == "model" && (providers != 0 || models != 1)) {
 				t.Fatal("registration did not repair only the changed configuration", providers, models)
+			}
+			if len(mock.providers) != 2 || mock.providers[1]["name"] != "ModelBridge" ||
+				mock.providers[1]["id"] != copilotProviderID || mock.providers[1]["hasSecret"] != true ||
+				len(mock.models) != 1 || mock.models[0]["id"] != "registered-model-0" || mock.selected.ID != "" {
+				t.Fatal("provider update changed its identity, credential, models, or session")
 			}
 		})
 	}
@@ -846,7 +853,7 @@ func TestCopilotDisconnectedSwitchIsNeverReplayedOrReportedAsConfirmed(t *testin
 			result := controlCall(a, "/api/toggle-copilot", object{})
 			if result.Code != 400 || !a.snapshot().Copilot ||
 				!strings.Contains(result.Body.String(), "Copilot disconnected during the model switch") ||
-				!strings.Contains(result.Body.String(), "select Kobashi") ||
+				!strings.Contains(result.Body.String(), "select ModelBridge") ||
 				strings.Contains(result.Body.String(), "failed to read JSON") {
 				t.Fatal("uncertain switch was hidden, disabled inference, or leaked raw transport details", result.Body.String())
 			}

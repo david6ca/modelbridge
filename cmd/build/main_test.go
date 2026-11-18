@@ -14,7 +14,7 @@ import (
 )
 
 func TestWindowsManifestVersion(t *testing.T) {
-	icon, err := os.ReadFile(filepath.Join("..", "..", "assets", "kobashi-icon.ico"))
+	icon, err := os.ReadFile(filepath.Join("..", "..", "assets", "modelbridge-icon.ico"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -59,6 +59,7 @@ func TestWindowsManifestVersion(t *testing.T) {
 				var manifest struct {
 					Identity struct {
 						Version string `xml:"version,attr"`
+						Name    string `xml:"name,attr"`
 					} `xml:"assemblyIdentity"`
 				}
 				if err := xml.Unmarshal(data[offset:offset+size], &manifest); err != nil {
@@ -66,6 +67,9 @@ func TestWindowsManifestVersion(t *testing.T) {
 				}
 				if manifest.Identity.Version != tt.want {
 					t.Fatalf("assembly version = %q, want %q", manifest.Identity.Version, tt.want)
+				}
+				if manifest.Identity.Name != "com.pomegram.modelbridge" {
+					t.Fatal("application manifest retained the legacy product identity")
 				}
 				return
 			}
@@ -75,7 +79,7 @@ func TestWindowsManifestVersion(t *testing.T) {
 }
 
 func TestWindowsResourcesRejectInvalidVersion(t *testing.T) {
-	icon, err := os.ReadFile(filepath.Join("..", "..", "assets", "kobashi-icon.ico"))
+	icon, err := os.ReadFile(filepath.Join("..", "..", "assets", "modelbridge-icon.ico"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -220,11 +224,11 @@ func TestPublishAppReplacesBundleAndPreservesWindowsRelease(t *testing.T) {
 		"ModelBridge.app/Contents/obsolete.txt": "obsolete",
 	})
 	bundle := map[string]string{
-		"ModelBridge.app/Contents/Info.plist":                  "plist",
-		"ModelBridge.app/Contents/MacOS/kobashi":               "cocoa",
-		"ModelBridge.app/Contents/Resources/AppIcon.icns":      "icon",
-		"ModelBridge.app/Contents/Resources/bin/kobashi-arm64": "arm64",
-		"ModelBridge.app/Contents/Resources/bin/kobashi-x64":   "x64",
+		"ModelBridge.app/Contents/Info.plist":                      "plist",
+		"ModelBridge.app/Contents/MacOS/ModelBridge":               "cocoa",
+		"ModelBridge.app/Contents/Resources/AppIcon.icns":          "icon",
+		"ModelBridge.app/Contents/Resources/bin/modelbridge-arm64": "arm64",
+		"ModelBridge.app/Contents/Resources/bin/modelbridge-x64":   "x64",
 	}
 	writeReleaseFixture(t, scratch, bundle)
 	built := filepath.Join(scratch, "ModelBridge.app")

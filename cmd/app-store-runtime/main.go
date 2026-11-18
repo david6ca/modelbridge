@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/david6ca/Kobashi2/internal/bridge"
+	"github.com/david6ca/modelbridge/internal/bridge"
 )
 
 func main() {

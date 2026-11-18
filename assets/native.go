@@ -2,10 +2,10 @@ package assets
 
 import _ "embed"
 
-//go:embed kobashi-icon.ico
+//go:embed modelbridge-icon.ico
 var Icon []byte
 
-//go:embed kobashi-icon.png
+//go:embed modelbridge-icon.png
 var Artwork []byte
 
 //go:embed github.png

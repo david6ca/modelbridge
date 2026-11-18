@@ -25,7 +25,7 @@ func (a *App) copilotApp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if subtle.ConstantTimeCompare([]byte(r.Header.Get("Authorization")), []byte("Bearer PROXY_MANAGED")) != 1 {
-		respond(w, 401, object{"error": "Set the Kobashi provider API key to PROXY_MANAGED"})
+		respond(w, 401, object{"error": "Set the ModelBridge provider API key to PROXY_MANAGED"})
 		return
 	}
 	a.openAI(w, r, true)

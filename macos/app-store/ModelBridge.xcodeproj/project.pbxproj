@@ -6,7 +6,7 @@ BD16F8F28CB212B6C01996C4 = { isa = PBXFileReference; lastKnownFileType = sourcec
 4645D5AEFE07FB008698F5A0 = { isa = PBXFileReference; lastKnownFileType = folder; path = "Runtime"; sourceTree = "<group>"; };
 CA32AD6AC21C5F361B60D078 = { isa = PBXFileReference; lastKnownFileType = text.xml; path = "PrivacyInfo.xcprivacy"; sourceTree = "<group>"; };
 BEB20FCDDA50A14EB81C598B = { isa = PBXFileReference; lastKnownFileType = image.icns; path = "AppIcon.icns"; sourceTree = "<group>"; };
-043A8BBABF52EC8034D1155D = { isa = PBXFileReference; lastKnownFileType = image.png; path = "../../assets/kobashi-icon.png"; sourceTree = "<group>"; };
+043A8BBABF52EC8034D1155D = { isa = PBXFileReference; lastKnownFileType = image.png; path = "../../assets/modelbridge-icon.png"; sourceTree = "<group>"; };
 1501D8E8A4584C1399DE92FB = { isa = PBXFileReference; lastKnownFileType = image.png; path = "../../assets/github.png"; sourceTree = "<group>"; };
 B115F0DD3CF53E6E5064A859 = { isa = PBXFileReference; lastKnownFileType = image.png; path = "../../assets/claude.png"; sourceTree = "<group>"; };
 BA5A820B796F69B0E68DDD51 = { isa = PBXFileReference; lastKnownFileType = image.png; path = "../../assets/codex.png"; sourceTree = "<group>"; };

@@ -289,7 +289,7 @@ func injectConfig(source string, port int, catalog string) string {
 		prefix += nl
 	}
 	// Codex gates account visibility on this flag; the explicit bearer still isolates inference auth.
-	block := fmt.Sprintf("[model_providers.kobashi]%sname = \"Kobashi\"%sbase_url = \"http://127.0.0.1:%d/v1\"%sexperimental_bearer_token = \"PROXY_MANAGED\"%srequires_openai_auth = true%swire_api = \"responses\"", nl, nl, port, nl, nl, nl)
+	block := fmt.Sprintf("[model_providers.kobashi]%sname = \"ModelBridge\"%sbase_url = \"http://127.0.0.1:%d/v1\"%sexperimental_bearer_token = \"PROXY_MANAGED\"%srequires_openai_auth = true%swire_api = \"responses\"", nl, nl, port, nl, nl, nl)
 	if offset < len(cleaned) {
 		return bom + prefix + block + nl + nl + cleaned[offset:]
 	}

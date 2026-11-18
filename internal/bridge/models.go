@@ -745,7 +745,7 @@ func (a *App) probe(ctx context.Context, entry modelEntry) modelRecord {
 }
 func (a *App) probeAgentMessages(ctx context.Context, baseline object, authRetried *bool) bool {
 	request := clone(baseline)
-	message := "Kobashi agent check " + rand.Text()
+	message := "ModelBridge agent check " + rand.Text()
 	request["tool_choice"] = "auto"
 	request["tools"] = []any{object{"type": "namespace", "name": "collaboration", "description": "Agent communication.",
 		"tools": []any{object{"type": "function", "name": "send_message", "description": "Send an agent message.", "strict": false,
@@ -844,7 +844,7 @@ func (a *App) probeAgentMessages(ctx context.Context, baseline object, authRetri
 	return verified
 }
 func loadNativeCatalog(ctx context.Context, home string) ([]object, error) {
-	scratch, err := os.MkdirTemp("", "kobashi-codex-catalog-")
+	scratch, err := os.MkdirTemp("", "modelbridge-codex-catalog-")
 	if err != nil {
 		return nil, err
 	}

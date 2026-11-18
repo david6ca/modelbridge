@@ -8,7 +8,7 @@ import (
 	"syscall"
 	"unsafe"
 
-	"github.com/david6ca/Kobashi2/internal/localization"
+	"github.com/david6ca/modelbridge/internal/localization"
 )
 
 var preferredWindowsLanguages = func() []string {

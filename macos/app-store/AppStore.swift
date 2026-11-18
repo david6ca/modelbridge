@@ -103,9 +103,9 @@ func runAppStoreSelfTest() throws {
 
     let process = Process()
     #if arch(arm64)
-    process.executableURL = resources.appendingPathComponent("bin/kobashi-arm64")
+    process.executableURL = resources.appendingPathComponent("bin/modelbridge-arm64")
     #else
-    process.executableURL = resources.appendingPathComponent("bin/kobashi-x64")
+    process.executableURL = resources.appendingPathComponent("bin/modelbridge-x64")
     #endif
     let token = UUID().uuidString
     environment["KOBASHI_APP_PATH"] = Bundle.main.bundleURL.path

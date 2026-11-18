@@ -141,14 +141,14 @@
 
 ## 窗口与视觉
 
-- 主窗口显示当前 source、三个客户端开关、Settings 入口和版本。
+- 主窗口显示当前 source、三个客户端开关和 Settings 入口，内容区不显示产品标题、logo 或版本。
 - 使用 `Accounts` 和 `Add account` 统一管理两种 Provider。
 - UI 文案以标签、状态和必要操作为主，不显示技术配置、解释段落或成功通知。
 - 界面使用 native controls、纯色背景和紫色主题；不添加装饰动画。
 - `Active` / connected 使用绿色，错误使用红色，`Paused` / disconnected 使用中性灰色。
 - 保留原客户端品牌图案；ModelBridge app 标志为两个细线圆环及连接线，menu bar 保留实心圆以保证小尺寸辨识度。
-- 主页面和 Settings 共用固定窗口尺寸：Windows 内容区 400 × 370，macOS 内容区 400 × 390 logical pixels。
-- Header、source 区、客户端区和版本区之间的间距为 16 logical pixels；版本保持底部锚定。
+- 已连接主页面内容区为 400 × 259，Settings 为 400 × 220 logical pixels；切换页面保持窗口顶边位置。
+- 账户区保持平整无边框，客户端列表为一块通栏表面；Windows 保留原生标题栏和 Win32 控件。
 - Source 列表和 setup 可使用独立面板，长列表在面板内滚动，不改变主窗口尺寸。
 - 状态、错误和进度更新不使布局跳动；主页面错误在 header 标题位置显示。
 - 鼠标选择不出现粗边框；键盘焦点清晰可见，操作支持键盘和屏幕阅读器。
@@ -177,7 +177,7 @@
 - 产品名称为 `ModelBridge`，不添加 `Pomegram` 前缀或后缀。
 - macOS Bundle ID 使用 `com.pomegram.modelbridge`。
 - macOS / Windows 产品界面和 GTM 材料支持 13 个 locale：`en`、`zh-Hans`、`zh-Hant`、`ja`、`ko`、`de`、`fr`、`pt-BR`、`es`、`ar`、`hi`、`ru`、`vi`。
-- Settings 提供 `Language`；macOS 的 `Privacy Statement` 只放在系统 app 菜单中，Windows 保留现有入口。tray / menu bar 只保留显示主窗口和退出入口。
+- Settings 提供 `Language`；macOS 的 `Privacy Statement` 只放在系统 app 菜单中，Windows 放在 tray 菜单中。tray / menu bar 保留显示主窗口和退出入口。
 - macOS 主窗口上半部（含标题栏）为纯黑实体背景，显示账户和额度，不加橙色底色。下半部为与 Disk Watcher sidebar 相同的边到边原生玻璃区域，显示三个客户端开关，不添加内部底板。
 - macOS 内容不显示产品标题、logo 或版本，不给账户信息和开关列表绘制外框。使用带顶部留白的原生 unified title bar，Settings 位于右上角，与窗口控制按钮同排；原生窗口控制区域不随 RTL 镜像。正文左右边距为 28 pt，与原生窗口图标边线对齐；已连接主屏为 400×259 pt，Settings 为 400×220 pt、本地模型添加页为 400×212 pt、GitHub 添加页为 400×232 pt，其他登录流程保持 400×350 pt，切换页面保持窗口顶边位置。顶部账户区为 91 pt；客户端行高 44 pt，开关的可见间隔为 20 pt，玻璃区上下图标留白为 24 pt、开关留白为 28 pt；账户和客户端图标左边距为 28 pt。Settings 与 Back 均为无边框的 32×32 按钮，使用相同字号、字重与颜色的系统图标。
 - Connected 的下拉箭头对齐正文右边线，文字与箭头可见间距约 6 pt；Connected 和箭头合为一个点击区域，整块点击均打开账户菜单，hover 背景包含箭头内边距。
