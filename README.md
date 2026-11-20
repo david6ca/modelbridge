@@ -166,7 +166,7 @@ Windows and Intel Macs retain GitHub Copilot sources.
 
 Enable **WorkBuddy** in ModelBridge to synchronize the active account's available
 models into `~/.workbuddy/models.json`. WorkBuddy's custom model picker shows the
-actual names as **ModelBridge · GPT…**, **ModelBridge · Claude…**, or the selected
+actual names such as **GPT-6.2 Astra**, **GPT-6.2 Sol**, or the selected
 local model. Select the model you want in WorkBuddy. URLs, keys, supported image
 input, reasoning options, and token limits are configured by the app.
 The App Store build asks for the WorkBuddy configuration folder on first use.
@@ -175,9 +175,13 @@ The catalog updates automatically while enabled, including after switching
 ModelBridge accounts or local models. Models explicitly edited in WorkBuddy and
 unrelated providers are preserved. Named models route to that exact model;
 unavailable selections report an error rather than falling back to another one.
-The earlier `modelbridge` ID remains as **ModelBridge · Auto** for existing
-conversations. WorkBuddy's built-in Tencent models remain available, and existing
-conversation model selections are preserved.
+ModelBridge is the provider, not a model: there is no ModelBridge/Auto model.
+The earlier placeholder is removed automatically when its managed configuration
+is migrated. WorkBuddy's supported alias metadata maps its saved placeholder
+selection to a concrete named model. The bridge itself rejects placeholder
+requests and asks for a specific model.
+WorkBuddy's built-in Tencent models remain available. Select the actual model you
+want in WorkBuddy's model picker.
 
 The independent loopback endpoint is `http://127.0.0.1:18926/v1`
 (`18926 + N` with `--port-offset N`), with placeholder key `PROXY_MANAGED`.

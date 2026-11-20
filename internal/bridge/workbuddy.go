@@ -88,13 +88,6 @@ func (a *App) writeWorkBuddyModels(doc workBuddyDocument) error {
 
 const workBuddyModelPrefix = "modelbridge/"
 
-func (a *App) workBuddyEntry() object {
-	return object{"id": workBuddyModelID, "name": "ModelBridge · Auto", "vendor": "custom",
-		"url": a.WorkBuddyURL() + "/chat/completions", "apiKey": "PROXY_MANAGED",
-		"supportsToolCall": true, "supportsImages": false, "supportsReasoning": false,
-		"useCustomProtocol": true, "isDefault": true}
-}
-
 func (a *App) workBuddyCatalog(ctx context.Context) ([]object, error) {
 	raw, err := a.discover(ctx, false)
 	if err != nil {
@@ -122,25 +115,17 @@ func (a *App) workBuddyCatalog(ctx context.Context) ([]object, error) {
 	return models, nil
 }
 
-func preferredWorkBuddyModel(models []object) object {
-	for _, model := range models {
-		if model["id"] == defaultClaude {
-			return model
-		}
-	}
-	return models[0]
-}
-
 func (a *App) workBuddyEntries(models []object) []object {
-	entries := []object{a.workBuddyEntry()}
+	entries := []object{}
 	for _, model := range models {
-		entry := a.workBuddyEntry()
 		id, name := str(model["id"]), str(model["name"])
 		if name == "" {
 			name = id
 		}
-		entry["id"], entry["name"] = workBuddyModelPrefix+id, "ModelBridge · "+name
-		delete(entry, "isDefault")
+		entry := object{"id": workBuddyModelPrefix + id, "name": name, "vendor": "custom",
+			"url": a.WorkBuddyURL() + "/chat/completions", "apiKey": "PROXY_MANAGED",
+			"supportsToolCall": true, "supportsImages": false, "supportsReasoning": false,
+			"useCustomProtocol": true}
 		supports := obj(nested(model, "capabilities", "supports"))
 		entry["supportsImages"] = supports["vision"] == true
 		efforts := stringsOf(supports["reasoning_effort"])
@@ -222,6 +207,11 @@ func (a *App) syncWorkBuddyEntries(entries []object) error {
 	records := map[string]workBuddyModelRestore{}
 	for _, record := range saved.Models {
 		records[str(record.Managed["id"])] = record
+	}
+	if _, upgrading := records[workBuddyModelID]; upgrading && len(entries) > 0 {
+		// WorkBuddy's supported model aliases migrate a saved picker selection to
+		// an explicitly named model. There is still no virtual model or proxy fallback.
+		entries[0]["aliases"] = []any{workBuddyModelID}
 	}
 	desired := map[string]object{}
 	for _, entry := range entries {
@@ -376,16 +366,6 @@ func (a *App) toggleWorkBuddy() error {
 	return nil
 }
 
-// The previous single-model ID remains a default route for existing conversations.
-// Named entries always resolve to the exact selected model, never a silent fallback.
-func (a *App) workBuddyModel(ctx context.Context, s session) (string, error) {
-	models, err := a.workBuddyCatalog(ctx)
-	if err != nil {
-		return "", err
-	}
-	return str(preferredWorkBuddyModel(models)["id"]), nil
-}
-
 func (a *App) startWorkBuddyWatcher() {
 	a.workBuddyWatchOnce.Do(func() {
 		a.wg.Add(1)
@@ -467,8 +447,10 @@ func (a *App) prepareWorkBuddyRequest(w http.ResponseWriter, r *http.Request, s 
 	requested := str(body["model"])
 	var chosen object
 	if requested == workBuddyModelID {
-		chosen = preferredWorkBuddyModel(models)
-	} else if strings.HasPrefix(requested, workBuddyModelPrefix) {
+		respond(w, 400, object{"error": "ModelBridge is a provider. Select a specific model in WorkBuddy"})
+		return false
+	}
+	if strings.HasPrefix(requested, workBuddyModelPrefix) {
 		id := strings.TrimPrefix(requested, workBuddyModelPrefix)
 		for _, model := range models {
 			if model["id"] == id {

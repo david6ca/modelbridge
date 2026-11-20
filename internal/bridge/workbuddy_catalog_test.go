@@ -34,7 +34,7 @@ func TestWorkBuddyImportsRealCatalogAndCapabilities(t *testing.T) {
 		t.Fatal(err)
 	}
 	doc, err := a.readWorkBuddyModels()
-	if err != nil || len(doc.models) != 3 {
+	if err != nil || len(doc.models) != 2 {
 		t.Fatal("incorrect imported catalog size", err, len(doc.models))
 	}
 	var found object
@@ -43,7 +43,7 @@ func TestWorkBuddyImportsRealCatalogAndCapabilities(t *testing.T) {
 			found = obj(entry)
 		}
 	}
-	if found == nil || found["name"] != "ModelBridge · GPT Responses" || found["supportsImages"] != true || found["supportsReasoning"] != true ||
+	if found == nil || found["name"] != "GPT Responses" || found["supportsImages"] != true || found["supportsReasoning"] != true ||
 		found["onlyReasoning"] != true || number(found["maxInputTokens"]) != 64000 || nested(found, "reasoning", "defaultEffort") != "medium" {
 		t.Fatal("real model names/capabilities were not imported")
 	}
@@ -58,16 +58,107 @@ func TestWorkBuddyImportsRealCatalogAndCapabilities(t *testing.T) {
 	w := httptest.NewRecorder()
 	a.workBuddy(w, copilotRequest("GET", "/v1/models", ""))
 	var catalog object
-	if json.Unmarshal(w.Body.Bytes(), &catalog) != nil || len(arr(catalog["data"])) != 3 || !strings.Contains(w.Body.String(), "modelbridge/gpt-responses") {
+	if json.Unmarshal(w.Body.Bytes(), &catalog) != nil || len(arr(catalog["data"])) != 2 || !strings.Contains(w.Body.String(), "modelbridge/gpt-responses") {
 		t.Fatal("API directory did not expose actual models", w.Code)
+	}
+	for _, value := range arr(catalog["data"]) {
+		model := obj(value)
+		if model["id"] == workBuddyModelID || model["name"] == "ModelBridge" || strings.Contains(str(model["name"]), "Auto") {
+			t.Fatal("provider was exposed as a virtual model")
+		}
+	}
+}
+
+func TestWorkBuddyRemovesManagedPlaceholderOnUpgrade(t *testing.T) {
+	for _, version := range []string{"single-model", "auto-model"} {
+		t.Run(version, func(t *testing.T) {
+			a := workBuddyTestApp(t, nil)
+			a.rawModels = workBuddyNamedModels()
+			name := "ModelBridge"
+			if version == "auto-model" {
+				name = "ModelBridge · Auto"
+			}
+			legacy := object{"id": workBuddyModelID, "name": name, "url": a.WorkBuddyURL() + "/chat/completions", "apiKey": "PROXY_MANAGED"}
+			if err := writeJSON(a.workBuddyConfigPath(), []any{legacy}); err != nil {
+				t.Fatal(err)
+			}
+			saved := workBuddyRestore{Managed: legacy}
+			if version == "auto-model" {
+				saved = workBuddyRestore{Models: []workBuddyModelRestore{{Managed: legacy}}}
+			}
+			if err := writeJSON(a.path("workbuddy-restore.json"), saved); err != nil {
+				t.Fatal(err)
+			}
+			if err := a.injectWorkBuddy(); err != nil {
+				t.Fatal(err)
+			}
+			doc, err := a.readWorkBuddyModels()
+			if err != nil || len(doc.models) != 2 {
+				t.Fatal("actual models were not imported", err)
+			}
+			for _, item := range doc.models {
+				if obj(item)["id"] == workBuddyModelID {
+					t.Fatal("old placeholder remained in WorkBuddy's picker")
+				}
+			}
+			if !contains(stringsOf(obj(doc.models[0])["aliases"]), workBuddyModelID) {
+				t.Fatal("saved WorkBuddy selection has no migration to a concrete model")
+			}
+			if err := a.restoreWorkBuddy(); err != nil {
+				t.Fatal(err)
+			}
+			doc, err = a.readWorkBuddyModels()
+			if err != nil || len(doc.models) != 0 {
+				t.Fatal("restoration recreated the placeholder", err)
+			}
+		})
+	}
+}
+
+func TestWorkBuddySwitchesBetweenActualModels(t *testing.T) {
+	var upstreamModels []string
+	a := workBuddyTestApp(t, func(r *http.Request) (*http.Response, error) {
+		var body object
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatal(err)
+		}
+		model := str(body["model"])
+		upstreamModels = append(upstreamModels, model)
+		if model == "gpt-responses" && r.URL.Path == "/v1/responses" {
+			return response(200, object{"status": "completed", "output": []any{object{"type": "message", "content": []any{object{"type": "output_text", "text": model}}}}}), nil
+		}
+		if model == defaultClaude && r.URL.Path == "/chat/completions" {
+			return response(200, object{"choices": []any{object{"message": object{"role": "assistant", "content": model}, "finish_reason": "stop"}}}), nil
+		}
+		t.Fatalf("model selection did not choose its exact upstream endpoint: %s %s", model, r.URL.Path)
+		return nil, nil
+	})
+	a.rawModels = workBuddyNamedModels()
+	a.state.WorkBuddy = true
+	for _, model := range []string{"gpt-responses", defaultClaude, "gpt-responses"} {
+		body := object{"model": workBuddyModelPrefix + model, "messages": []any{object{"role": "user", "content": "hello"}}}
+		w := httptest.NewRecorder()
+		a.workBuddy(w, copilotRequest("POST", "/v1/chat/completions", string(jsonBytes(body))))
+		var result object
+		if json.Unmarshal(w.Body.Bytes(), &result) != nil || w.Code != 200 || nested(obj(arr(result["choices"])[0]), "message", "content") != model {
+			t.Fatal("switching models returned a different model's result", w.Code)
+		}
+	}
+	if strings.Join(upstreamModels, ",") != "gpt-responses,"+defaultClaude+",gpt-responses" {
+		t.Fatal("selection was replaced by automatic routing")
+	}
+	w := httptest.NewRecorder()
+	a.workBuddy(w, copilotRequest("POST", "/v1/chat/completions", `{"model":"modelbridge","messages":[{"role":"user","content":"hello"}]}`))
+	if w.Code != 400 || len(upstreamModels) != 3 || !strings.Contains(w.Body.String(), "Select a specific model") {
+		t.Fatal("legacy virtual model silently chose a real model")
 	}
 }
 
 func TestWorkBuddyCatalogMigrationAndAccountChangesPreserveEdits(t *testing.T) {
 	a := workBuddyTestApp(t, nil)
 	a.rawModels = workBuddyNamedModels()
-	legacy := a.workBuddyEntry()
-	legacy["name"] = "ModelBridge"
+	legacy := object{"id": workBuddyModelID, "name": "ModelBridge", "vendor": "custom",
+		"url": a.WorkBuddyURL() + "/chat/completions", "apiKey": "PROXY_MANAGED"}
 	original := object{"id": workBuddyModelID, "name": "User's previous model", "sequence": json.Number("9007199254740993")}
 	if err := writeJSON(a.workBuddyConfigPath(), []any{legacy, object{"id": "unrelated"}}); err != nil {
 		t.Fatal(err)

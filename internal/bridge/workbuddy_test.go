@@ -49,7 +49,7 @@ func TestWorkBuddyToggleRestoresOnlyManagedEntry(t *testing.T) {
 				t.Fatal("WorkBuddy switch changed another client's state")
 			}
 			doc, err := a.readWorkBuddyModels()
-			if err != nil || len(doc.models) != 4 || !bytes.Equal(jsonBytes(doc.models[0]), jsonBytes(a.workBuddyEntry())) {
+			if err != nil || len(doc.models) != 4 || !bytes.Equal(jsonBytes(doc.models[0]), jsonBytes(original)) {
 				t.Fatal("WorkBuddy entry was not configured", err)
 			}
 			if info, err := os.Stat(a.path("workbuddy-restore.json")); err != nil || info.Mode().Perm() != 0600 {
@@ -102,7 +102,7 @@ func TestWorkBuddyRestartAndDisconnect(t *testing.T) {
 		t.Fatal("restart lost the enabled preference")
 	}
 	doc, err := reloaded.readWorkBuddyModels()
-	if err != nil || len(doc.models) != 3 {
+	if err != nil || len(doc.models) != 2 {
 		t.Fatal("restart did not restore WorkBuddy configuration", err)
 	}
 	status := controlCall(reloaded, "/api/status", nil)
@@ -197,6 +197,11 @@ func TestWorkBuddyProxyStreamingToolsAndIndependentSwitch(t *testing.T) {
 			}
 			a.state.WorkBuddy = true
 			body := `{"model":"modelbridge","stream":true,"messages":[{"role":"user","content":"ready"},{"role":"assistant","tool_calls":[{"id":"prior","type":"function","function":{"name":"ready","arguments":"{}"}}]},{"role":"tool","tool_call_id":"prior","content":"ok"}],"tools":[{"type":"function","function":{"name":"ready","parameters":{"type":"object"}}}]}`
+			selected := workBuddyModelPrefix + defaultClaude
+			if local {
+				selected = workBuddyModelPrefix + "qwen3-4b"
+			}
+			body = strings.Replace(body, `"modelbridge"`, `"`+selected+`"`, 1)
 			w := httptest.NewRecorder()
 			a.workBuddy(w, copilotRequest("POST", "/v1/chat/completions", body))
 			if w.Code != 200 || !strings.Contains(w.Body.String(), `"tool_calls"`) || !strings.Contains(w.Body.String(), "[DONE]") || calls != 1 {

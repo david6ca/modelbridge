@@ -229,6 +229,6 @@
 - 主屏在 GitHub Copilot 下方增加 WorkBuddy 独立开关，沿用 Working... / Active / Paused。
 - 开启后自动同步当前账号可用模型到 `~/.workbuddy/models.json`，显示真实名称和 image/reasoning/token 能力；账号或 local source 切换后持续同步。
 - 独立 loopback endpoint 为 `127.0.0.1:18926/v1`，支持 Chat Completions、streaming 和 tool calls，不依赖其他客户端开关。
-- 命名 ID `modelbridge/<wire-id>` 精确路由所选模型；仅旧版 `modelbridge` 作为 Auto 入口保留。Responses-only 模型由应用完成 Chat Completions 协议转换，包括 streaming、tool calls/results、图像和 reasoning effort。
+- 命名 ID `modelbridge/<wire-id>` 精确路由所选模型；移除旧版虚拟 `modelbridge` / Auto 模型项，旧别名请求提示选择具体模型，不再自动路由。Responses-only 模型由应用完成 Chat Completions 协议转换，包括 streaming、tool calls/results、图像和 reasoning effort。
 - 关闭、断开或退出时仅恢复受管理的模型项，保留其他 provider 和用户后续编辑；开关偏好持久化，旧版单模型恢复记录自动迁移。既有 WorkBuddy 对话模型选择不被强制更改。
 - App Store 版通过既有 security-scoped bookmark 流程获取 WorkBuddy 配置目录访问权。
