@@ -60,8 +60,9 @@ class AppearanceCheckDelegate: AppDelegate {
                       "Appearance persistence failures remain visible and actionable")
                 self.done()
                 check(self.selector.isHidden && self.controls["appearanceLabel"]?.isHidden == true &&
-                      self.controls["theme"] == nil && self.window.frame == self.originalFrame,
-                      "Appearance controls stay inside Settings without changing the main window")
+                      self.controls["theme"] == nil && self.window.contentView?.bounds.size == windowSize &&
+                      self.window.frame.maxY == self.originalFrame.maxY,
+                      "Leaving Settings restores the login window size and preserves its top edge")
                 print("PASS: Auto, Light, Dark and failed saves preserve native settings behavior")
                 exit(0)
             }

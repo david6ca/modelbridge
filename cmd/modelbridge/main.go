@@ -30,7 +30,7 @@ func main() {
 	headless := flag.Bool("no-open", false, "Run the native bridge without a window")
 	startup := flag.Bool("startup", false, "Launch using the login-startup window preference")
 	home := flag.String("home", "", "Use an isolated home directory")
-	offset := flag.Int("port-offset", 0, "Offset all three loopback ports for isolated testing")
+	offset := flag.Int("port-offset", 0, "Offset all loopback ports for isolated testing")
 	noStartup := flag.Bool("no-startup-registration", false, "Do not change OS login-startup registration")
 	flag.Parse()
 	isolated := *home != ""

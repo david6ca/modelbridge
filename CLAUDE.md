@@ -34,7 +34,7 @@ The connected main screen fits its content; Settings and setup use a larger
 fixed window. Changing a view preserves the window's top edge.
 The macOS main window has a solid black upper half for the account and usage,
 including the titlebar, with no orange tint. Its lower half is one edge-to-edge
-native glass surface for the three client toggles. There is no inset panel.
+native glass surface for the four client toggles. There is no inset panel.
 Use one NSVisualEffectView (.sidebar, .behindWindow) for this region, with a
 transparent window background. Do not stack NSGlassEffectView on it or force
 the entire window to darkAqua. Paint black only in the account/header region.
@@ -43,7 +43,7 @@ The app title, logo, and product version are absent from macOS content.
 Settings is a borderless 32-point gear in a native unified toolbar with top
 padding, on the same row as the native window controls. Body content uses
 28-point side margins aligned with the native chrome's visible icon edges.
-The connected main screen uses 400×259 content; Settings use 400×220 and local model setup uses 400×212; GitHub device setup uses 400×232.
+The connected main screen uses 400×303 content; Settings use 400×220 and local model setup uses 400×212; GitHub device setup uses 400×232.
 The compact account area ends at 91 points. Client rows are 44 points tall,
 with 20-point visible switch gaps. Glass top and bottom padding is 24 points
 for icon tiles and 28 points for switches; client icons and the account icon
@@ -58,14 +58,14 @@ The account popover, Settings, and privacy window also use native materials,
 respecting Reduce Transparency and Increase Contrast. Privacy Statement is
 only in the macOS app menu. Main-screen errors temporarily replace usage details
 without moving account information or toggles. Windows retains its native
-titlebar and Win32 controls, with 400×268 connected content and 400×236 Settings.
+titlebar and Win32 controls, with 400×312 connected content and 400×236 Settings.
 Its account card has 28-point visible insets on all sides; Settings starts its
 heading at y=24 rather than reusing the macOS toolbar-adjacent y=8.
 Mouse selection has no thick row border; keyboard focus remains visible around
 the relevant control.
 Settings has no quit link; keep quitting available through the tray/menu bar.
 The ModelBridge app and menu-bar marks use two outlined circles joined by a thin line. The menu-bar mark is a monochrome system template, with 1.5-point strokes for small-size legibility.
-Client rows are ordered `Codex`, `Claude Code`, and `GitHub Copilot`, without `Bridge`.
+Client rows are ordered `Codex`, `Claude Code`, `GitHub Copilot`, and `WorkBuddy`, without `Bridge`.
 Copilot preserves its enabled preference across launches. Its background watcher
 registers the provider when the app becomes available and connects eligible
 local sessions only while idle. Never interrupt a running session.
@@ -101,6 +101,7 @@ Editing files, building, and verifying logic against a copy are all fine — non
 - `18921` — Codex bridge (`~/.codex/config.toml` → `model_providers.kobashi`)
 - `18923` — Claude gateway (`~/.claude/settings.json`, Claude Desktop managed-config)
 - `18925` — Copilot app BYOK endpoint (OpenAI-compatible; provider API key `PROXY_MANAGED`)
+- `18926` — WorkBuddy Chat Completions endpoint (independent toggle; model ID `modelbridge`)
 
 Codex and Claude configurations are written by kobashi at startup and restored on exit. Enabling Copilot Bridge registers and verifies its dedicated provider through the running app's authenticated loopback API, independently of session selection. It selects the provider for the current local session only when idle. Only the app stores its placeholder provider credential; Kobashi never changes the app's GitHub login or environment. A port showing as busy is normal operation, not a stale process to clean up.
 

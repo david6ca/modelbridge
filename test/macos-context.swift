@@ -87,7 +87,7 @@ class ContextCheckDelegate: AppDelegate {
         check(slider.frame.height == 24 && homeGlassY - slider.frame.maxY == 20 &&
               controls["usageLabel"]?.frame.minY == 42 &&
               controls["codex"]!.frame.minY > homeGlassY && controls["project"] == nil &&
-              controls["copilot"]!.frame.maxY + 18 == window.contentView!.bounds.height,
+              controls["workbuddy"]!.frame.maxY + 18 == window.contentView!.bounds.height,
               "The local slider has 20pt bottom padding and client rows keep their bottom margin")
         check(slider.numberOfTickMarks == 6 && slider.integerValue == 2 &&
               !slider.isContinuous && slider.allowsTickMarkValuesOnly,
@@ -128,7 +128,7 @@ class ContextCheckDelegate: AppDelegate {
             render()
             check(slider.trackFillColor == NativeColors.current.accent &&
                   homeGlassY - slider.frame.maxY == 20 &&
-                  controls["copilot"]!.frame.maxY + 18 == window.contentView!.bounds.height &&
+                  controls["workbuddy"]!.frame.maxY + 18 == window.contentView!.bounds.height &&
                   controls["project"] == nil,
                   "The \(appearance) slider uses the existing palette and stays inside the account card")
             capture(appearance)

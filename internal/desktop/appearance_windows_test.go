@@ -502,11 +502,11 @@ func TestNativeAppearanceMatchesExistingInterface(t *testing.T) {
 		t.Helper()
 		var client rect
 		proc("GetClientRect", w.Handle, uintptr(unsafe.Pointer(&client)))
-		if client.Right != int32(windowWidth*w.dpi/96) || client.Bottom != int32(268*w.dpi/96) {
+		if client.Right != int32(windowWidth*w.dpi/96) || client.Bottom != int32(312*w.dpi/96) {
 			t.Fatalf("connected/%d DPI does not preserve the padded content size: %v", w.dpi, client)
 		}
 		for id, y := range map[int]int{7: 24, 8: 58, idAccounts: 20, idCodex: 118, idClaude: 162,
-			idCopilot: 206} {
+			idCopilot: 206, idWorkBuddy: 250} {
 			var bounds rect
 			proc("GetWindowRect", w.control(id), uintptr(unsafe.Pointer(&bounds)))
 			proc("MapWindowPoints", 0, w.Handle, uintptr(unsafe.Pointer(&bounds)), 2)
@@ -568,7 +568,7 @@ func TestNativeAppearanceMatchesExistingInterface(t *testing.T) {
 		if !w.highContrast && pixel(5, 5) != rgb(0) {
 			t.Fatal("connected account region must use a solid black background")
 		}
-		for _, y := range []int{100, 140, 162, 184, 206, 228, 267} {
+		for _, y := range []int{100, 140, 162, 184, 206, 228, 250, 272, 311} {
 			if pixel(0, y) != rgb(w.palette.panel) || pixel(399, y) != rgb(w.palette.panel) ||
 				pixel(200, y) != rgb(w.palette.panel) {
 				t.Fatalf("connected/%d DPI must use one edge-to-edge client surface at row %d", w.dpi, y)
@@ -669,8 +669,9 @@ func TestNativeAppearanceMatchesExistingInterface(t *testing.T) {
 	for id, want := range map[int]rect{
 		idSettings: {344, 8, 376, 40},
 		idCodex:    {18, 118, 382, 162}, idClaude: {18, 162, 382, 206},
-		idCopilot: {18, 206, 382, 250},
-		idStartup: {16, 64, 384, 96}, idTray: {16, 100, 384, 132},
+		idCopilot:   {18, 206, 382, 250},
+		idWorkBuddy: {18, 250, 382, 294},
+		idStartup:   {16, 64, 384, 96}, idTray: {16, 100, 384, 132},
 		idAppearanceLabel: {24, 147, 176, 165},
 		idSettingsBack:    {16, 16, 48, 48},
 	} {

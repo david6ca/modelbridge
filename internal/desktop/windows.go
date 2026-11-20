@@ -68,6 +68,7 @@ const (
 		idNetworkDone
 	*/
 	idCopilot
+	idWorkBuddy
 	idAppearanceLabel
 	idAppearance
 	idAccounts
@@ -269,6 +270,7 @@ func (w *Window) build() error {
 		{"BUTTON", "&Codex", "connected", idCodex, 18, 118, 364, 44, 0x10000 | 3},
 		{"BUTTON", "C&laude Code", "connected", idClaude, 18, 162, 364, 44, 0x10000 | 3},
 		{"BUTTON", "GitHub Cop&ilot", "connected", idCopilot, 18, 206, 364, 44, 0x10000 | 3},
+		{"BUTTON", "&WorkBuddy", "connected", idWorkBuddy, 18, 250, 364, 44, 0x10000 | 3},
 		{"BUTTON", "Back", "settings", idSettingsBack, 16, 16, 32, 32, 0x10000},
 		{"STATIC", "Settings", "settings", 9, 48, 24, 328, 22, 0},
 		{"BUTTON", "&Start at login", "settings", idStartup, 16, 64, 368, 32, 0x10000 | 3},
@@ -432,7 +434,7 @@ func (w *Window) post(path string, value map[string]any) {
 	}
 	w.focus = proc("GetFocus")
 	w.busy = true
-	w.pendingBridge = map[string]int{"/api/toggle-codex": idCodex, "/api/toggle-claude": idClaude, "/api/toggle-copilot": idCopilot}[path]
+	w.pendingBridge = map[string]int{"/api/toggle-codex": idCodex, "/api/toggle-claude": idClaude, "/api/toggle-copilot": idCopilot, "/api/toggle-workbuddy": idWorkBuddy}[path]
 	w.notice = ""
 	if w.pendingBridge == 0 && path != "/api/settings" && path != "/api/appearance" && path != "/api/language" {
 		w.notice = "Working..."
@@ -545,6 +547,7 @@ func (w *Window) render() {
 	check(idCodex, w.status["codexEnabled"])
 	check(idClaude, w.status["claudeEnabled"])
 	check(idCopilot, w.status["copilotEnabled"])
+	check(idWorkBuddy, w.status["workbuddyEnabled"])
 	check(idStartup, w.settings["startAtLogin"])
 	check(idTray, w.settings["closeToTray"])
 	appearance := uintptr(0)
@@ -706,8 +709,8 @@ func (w *Window) accept(e event) {
 		w.status["language"] = e.value["language"]
 	case "/api/settings":
 		w.settings = e.value
-	case "/api/toggle-codex", "/api/toggle-claude", "/api/toggle-copilot":
-		for _, key := range []string{"codexEnabled", "claudeEnabled", "copilotEnabled"} {
+	case "/api/toggle-codex", "/api/toggle-claude", "/api/toggle-copilot", "/api/toggle-workbuddy":
+		for _, key := range []string{"codexEnabled", "claudeEnabled", "copilotEnabled", "workbuddyEnabled"} {
 			w.status[key] = e.value[key]
 		}
 	/*
@@ -856,6 +859,8 @@ func (w *Window) command(id int) {
 		w.post("/api/toggle-claude", map[string]any{})
 	case idCopilot:
 		w.post("/api/toggle-copilot", map[string]any{})
+	case idWorkBuddy:
+		w.post("/api/toggle-workbuddy", map[string]any{})
 	case idDisconnect:
 		if err := w.showAccounts(); err != nil {
 			w.notice = err.Error()

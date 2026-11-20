@@ -81,7 +81,7 @@ func checkMacHarness(test string) error {
 	if err = os.MkdirAll(filepath.Join(app, "MacOS"), 0700); err != nil {
 		return err
 	}
-	for _, name := range []string{"modelbridge-icon.png", "github.png", "claude.png", "codex.png"} {
+	for _, name := range []string{"modelbridge-icon.png", "github.png", "claude.png", "codex.png", "workbuddy.png"} {
 		if err = copyFile(filepath.Join(root, "assets", name), filepath.Join(app, "Resources", name)); err != nil {
 			return err
 		}
@@ -102,5 +102,7 @@ func checkMacHarness(test string) error {
 	if err = run(workspace, os.Environ(), "xcrun", args...); err != nil {
 		return err
 	}
-	return run(workspace, os.Environ(), executable)
+	// Most fixtures assert English labels. Override only this disposable process,
+	// independently of the user's language; localization fixtures select locales explicitly.
+	return run(workspace, os.Environ(), executable, "-AppleLanguages", "(en)")
 }

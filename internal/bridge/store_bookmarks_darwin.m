@@ -6,7 +6,7 @@
 int modelbridge_acquire_folder(const char *home, const char *client) {
     @autoreleasepool {
         NSString *key = [NSString stringWithUTF8String:client];
-        if (![@[@"codex", @"claude", @"copilot"] containsObject:key]) return 0;
+        if (![@[@"codex", @"claude", @"copilot", @"workbuddy"] containsObject:key]) return 0;
         NSString *root = [NSString stringWithUTF8String:home];
         NSString *file = [[root stringByAppendingPathComponent:@".kobashi"] stringByAppendingPathComponent:@"client-access.plist"];
         NSDictionary *bookmarks = [NSDictionary dictionaryWithContentsOfFile:file];

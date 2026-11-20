@@ -16,3 +16,6 @@ var Claude []byte
 
 //go:embed codex.png
 var Codex []byte
+
+//go:embed workbuddy.png
+var WorkBuddy []byte

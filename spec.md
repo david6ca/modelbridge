@@ -3,8 +3,8 @@
 ## 产品定义
 
 - 本文是 ModelBridge 产品行为与用户体验的唯一 source of truth。
-- ModelBridge 为 Claude Code、Codex 和 GitHub Copilot app 提供统一的推理来源管理。
-- 客户端名称显示为 `Claude`、`Codex`、`Copilot`。
+- ModelBridge 为 Claude Code、Codex、GitHub Copilot app 和 WorkBuddy 提供统一的推理来源管理。
+- 客户端名称显示为 `Codex`、`Claude Code`、`GitHub Copilot`、`WorkBuddy`。
 - 支持 macOS 13+ 的 Apple Silicon / Intel，以及 Windows 10/11 x64。
 - 两个平台提供一致的 source 管理、模型选择和客户端控制体验。
 
@@ -19,7 +19,7 @@
 - 用户可添加、选择、断开和移除 source。
 - 添加或准备新 source 时，当前 source 保持可用；新 source 准备完成后才可切换。
 - 取消添加保留当前 source 和客户端开关状态。
-- 切换 source 保留三个客户端的启用偏好。
+- 切换 source 保留四个客户端的启用偏好。
 - 切换、断开或移除 source 不得中断正在执行的推理或 tool call；无法安全完成时保留当前连接并显示简短原因。
 - 断开保留 source；移除 active source 后不自动选择其他 source。
 - 打开 source 列表不受其他操作影响；暂不可执行的操作显示为不可用。
@@ -109,7 +109,7 @@
 - 磁盘不足时显示缺少的空间；资源不足时不将 source 显示为 `Ready`。
 - `Ready` 表示运行环境和模型可供客户端推理，不仅表示下载完成。
 - 准备操作不阻塞窗口交互或当前 source 的推理。
-- 三个客户端共享当前本地模型；并发超过资源容量时排队，并允许取消等待中的请求。
+- 四个客户端共享当前本地模型；并发超过资源容量时排队，并允许取消等待中的请求。
 - Source 不再使用时释放其模型占用，保留已下载文件。
 - 退出 ModelBridge 后停止其管理的本地推理，保留模型供下次使用。
 - 移除 Local source 时可选择一并删除 ModelBridge 管理的模型，并显示可释放空间；默认保留下载。
@@ -117,9 +117,9 @@
 
 ## 客户端体验
 
-- `Claude`、`Codex`、`Copilot` 各有独立开关，状态为 `Active` 或 `Paused`。
+- `Codex`、`Claude Code`、`GitHub Copilot`、`WorkBuddy` 各有独立开关，状态为 `Active` 或 `Paused`。
 - 操作期间在原状态位置显示 `Working...`，完成后恢复正常状态。
-- 两种 Provider 均支持三个客户端的文本输入、streaming、tool calls 和 tool results。
+- 两种 Provider 均支持四个客户端的文本输入、streaming、tool calls 和 tool results。
 - 展示的模型、上下文、reasoning 和其他能力必须与 active source 实际提供的能力一致。
 - 不支持的能力不显示为可用；请求失败不得显示为成功，或静默替换模型。
 - 已开始的响应失败时向客户端保留明确错误，不自动重放整次生成。
@@ -141,7 +141,7 @@
 
 ## 窗口与视觉
 
-- 主窗口显示当前 source、三个客户端开关和 Settings 入口，内容区不显示产品标题、logo 或版本。
+- 主窗口显示当前 source、四个客户端开关和 Settings 入口，内容区不显示产品标题、logo 或版本。
 - 使用 `Accounts` 和 `Add account` 统一管理两种 Provider。
 - UI 文案以标签、状态和必要操作为主，不显示技术配置、解释段落或成功通知。
 - 界面使用 native controls、纯色背景和紫色主题；不添加装饰动画。
@@ -178,8 +178,8 @@
 - macOS Bundle ID 使用 `com.pomegram.modelbridge`。
 - macOS / Windows 产品界面和 GTM 材料支持 13 个 locale：`en`、`zh-Hans`、`zh-Hant`、`ja`、`ko`、`de`、`fr`、`pt-BR`、`es`、`ar`、`hi`、`ru`、`vi`。
 - Settings 提供 `Language`；macOS 的 `Privacy Statement` 只放在系统 app 菜单中，Windows 放在 tray 菜单中。tray / menu bar 保留显示主窗口和退出入口。
-- macOS 主窗口上半部（含标题栏）为纯黑实体背景，显示账户和额度，不加橙色底色。下半部为与 Disk Watcher sidebar 相同的边到边原生玻璃区域，显示三个客户端开关，不添加内部底板。
-- macOS 内容不显示产品标题、logo 或版本，不给账户信息和开关列表绘制外框。使用带顶部留白的原生 unified title bar，Settings 位于右上角，与窗口控制按钮同排；原生窗口控制区域不随 RTL 镜像。正文左右边距为 28 pt，与原生窗口图标边线对齐；已连接主屏为 400×259 pt，Settings 为 400×220 pt、本地模型添加页为 400×212 pt、GitHub 添加页为 400×232 pt，其他登录流程保持 400×350 pt，切换页面保持窗口顶边位置。顶部账户区为 91 pt；客户端行高 44 pt，开关的可见间隔为 20 pt，玻璃区上下图标留白为 24 pt、开关留白为 28 pt；账户和客户端图标左边距为 28 pt。Settings 与 Back 均为无边框的 32×32 按钮，使用相同字号、字重与颜色的系统图标。
+- macOS 主窗口上半部（含标题栏）为纯黑实体背景，显示账户和额度，不加橙色底色。下半部为与 Disk Watcher sidebar 相同的边到边原生玻璃区域，显示四个客户端开关，不添加内部底板。
+- macOS 内容不显示产品标题、logo 或版本，不给账户信息和开关列表绘制外框。使用带顶部留白的原生 unified title bar，Settings 位于右上角，与窗口控制按钮同排；原生窗口控制区域不随 RTL 镜像。正文左右边距为 28 pt，与原生窗口图标边线对齐；已连接主屏为 400×303 pt，Settings 为 400×220 pt、本地模型添加页为 400×212 pt、GitHub 添加页为 400×232 pt，其他登录流程保持 400×350 pt，切换页面保持窗口顶边位置。顶部账户区为 91 pt；客户端行高 44 pt，开关的可见间隔为 20 pt，玻璃区上下图标留白为 24 pt、开关留白为 28 pt；账户和客户端图标左边距为 28 pt。Settings 与 Back 均为无边框的 32×32 按钮，使用相同字号、字重与颜色的系统图标。
 - Connected 的下拉箭头对齐正文右边线，文字与箭头可见间距约 6 pt；Connected 和箭头合为一个点击区域，整块点击均打开账户菜单，hover 背景包含箭头内边距。
 - macOS menu bar 图标同步 app icon 的空心双圆与细连接线，采用单色 system template，适配浅色、深色与高对比度显示。
 - macOS Settings、账户菜单和 Privacy 窗口使用原生玻璃材质；保留 Auto / Light / Dark，并遵循系统 Reduce Transparency 与 Increase Contrast 设置。 主屏自定义区域只使用一层 `.sidebar` / `.behindWindow` 的 `NSVisualEffectView`，窗口底色透明，不叠加 `NSGlassEffectView(.regular)`，不强制整窗 `.darkAqua`；黑色只绘制在账户区和标题栏。账户菜单直接使用 `NSPopover` 自带材质。
@@ -223,3 +223,12 @@
 - App Store runtime 只包含固定版本的 llama-server、所需原生动态库和 license；不复制通用 Python 或第三方 pip 环境。最终 archive 仍检查已知非公开 API 引用。
 - App Store runtime 使用同版本 SciPy 的官方 OpenBLAS wheel，不链接审核点名的旧 Accelerate BLAS/LAPACK 接口；移除未使用的 PyArrow S3 后端，保留本地 Arrow/Parquet/datasets 功能。SDL2 使用已核验官方源码关闭 Cocoa 视频与 Metal renderer 的构建，保留 OpenCV 图像和视频读写。
 - Archive 后、export 前扫描整个 app 的所有 Mach-O，拒绝审核清单中的 47 个 API 及另发现的 5 个 Tk 私有名称；原拒审包必须被该检查拒绝，修复产物必须通过。保留 network.server，并在审核说明中解释所有仅绑定 127.0.0.1 的入站 HTTP 服务及 child sandbox 继承用途。
+
+### WorkBuddy
+
+- 主屏在 GitHub Copilot 下方增加 WorkBuddy 独立开关，沿用 Working... / Active / Paused。
+- 开启后自动同步当前账号可用模型到 `~/.workbuddy/models.json`，显示真实名称和 image/reasoning/token 能力；账号或 local source 切换后持续同步。
+- 独立 loopback endpoint 为 `127.0.0.1:18926/v1`，支持 Chat Completions、streaming 和 tool calls，不依赖其他客户端开关。
+- 命名 ID `modelbridge/<wire-id>` 精确路由所选模型；仅旧版 `modelbridge` 作为 Auto 入口保留。Responses-only 模型由应用完成 Chat Completions 协议转换，包括 streaming、tool calls/results、图像和 reasoning effort。
+- 关闭、断开或退出时仅恢复受管理的模型项，保留其他 provider 和用户后续编辑；开关偏好持久化，旧版单模型恢复记录自动迁移。既有 WorkBuddy 对话模型选择不被强制更改。
+- App Store 版通过既有 security-scoped bookmark 流程获取 WorkBuddy 配置目录访问权。

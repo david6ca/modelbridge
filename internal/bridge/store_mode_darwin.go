@@ -14,7 +14,7 @@ func prepareStoreOptions(options *Options) {
 	// AppKit launches the helper with HOME set to the app's container.
 	// Client folders are separate security-scoped bookmarks, not the user's home.
 	options.CodexHome = filepath.Join(options.Home, ".codex")
-	for _, client := range []string{"codex", "claude", "copilot"} {
+	for _, client := range []string{"codex", "claude", "copilot", "workbuddy"} {
 		_ = acquireClientAccess(options.Home, client)
 	}
 	options.ReadEnvironment = func(string) (*string, error) { return nil, nil }

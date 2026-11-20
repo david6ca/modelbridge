@@ -60,7 +60,7 @@ func directionalRect(_ rect: NSRect, width: CGFloat) -> NSRect {
 
 let UI_PORT = 18922
 let windowSize = NSSize(width: 400, height: 350)
-let homeWindowSize = NSSize(width: 400, height: 259)
+let homeWindowSize = NSSize(width: 400, height: 303)
 let settingsWindowSize = NSSize(width: 400, height: 220)
 let addAccountWindowSize = NSSize(width: 400, height: 212)
 let githubDeviceWindowSize = NSSize(width: 400, height: 232)
@@ -361,7 +361,7 @@ class NativeButton: NSButton {
     override var acceptsFirstResponder: Bool { isEnabled }
     override var canBecomeKeyView: Bool { isEnabled && !isHiddenOrHasHiddenAncestor }
     override func accessibilityValue() -> Any? {
-        if ["codex", "claude", "copilot", "startup", "tray"].contains(key) { return state.rawValue }
+        if ["codex", "claude", "copilot", "workbuddy", "startup", "tray"].contains(key) { return state.rawValue }
         return super.accessibilityValue()
     }
     override func becomeFirstResponder() -> Bool {
@@ -482,11 +482,11 @@ class NativeButton: NSButton {
                 nativeText(title, in: directionalRect(NSRect(x: 0, y: 6, width: bounds.width, height: 22), width: bounds.width),
                            font: .systemFont(ofSize: 12), color: c.accent, alignment: .center)
             }
-        case "claude", "codex", "copilot":
+        case "claude", "codex", "copilot", "workbuddy":
             rounded(directionalRect(NSRect(x: 10, y: 6, width: 32, height: 32), width: bounds.width), radius: 8, fill: c.tile, border: c.border)
             let iconSize: CGFloat = key == "claude" ? 20 : 24
             owner?.drawArtwork(key == "copilot" ? "github" : key, in: directionalRect(NSRect(x: 26 - iconSize / 2, y: 22 - iconSize / 2, width: iconSize, height: iconSize), width: bounds.width),
-                               tint: key == "claude" ? NativeColors.rgb(0xd97757) : key == "copilot" ? NativeColors.appStoreWhite(c.accent) : c.text)
+                               tint: key == "workbuddy" ? nil : key == "claude" ? NativeColors.rgb(0xd97757) : key == "copilot" ? NativeColors.appStoreWhite(c.accent) : c.text)
             nativeText(title, in: directionalRect(NSRect(x: 54, y: 2, width: 180, height: 18), width: bounds.width), font: .systemFont(ofSize: 12), color: c.muted)
             let on = state == .on
             let statusColor = on ? c.connected : c.disconnected
@@ -550,7 +550,7 @@ class NativeButton: NSButton {
         }
         if window?.firstResponder === self && showsKeyboardFocus {
             let rect = ["startup", "tray"].contains(key) ? directionalRect(NSRect(x: bounds.width - 32, y: 2, width: 28, height: 28), width: bounds.width) :
-                ["claude", "codex", "copilot"].contains(key) ? directionalRect(NSRect(x: bounds.width - 59, y: 6, width: 52, height: 32), width: bounds.width) :
+                ["claude", "codex", "copilot", "workbuddy"].contains(key) ? directionalRect(NSRect(x: bounds.width - 59, y: 6, width: 52, height: 32), width: bounds.width) :
                 bounds.insetBy(dx: 2, dy: 2)
             let radius = key == "settings" || (key == "cancelAccount" && !["add-account", "device"].contains(owner?.currentView ?? "")) ? rect.height / 2 : 6
             let ring = NSBezierPath(roundedRect: rect, xRadius: radius, yRadius: radius)
@@ -976,7 +976,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTextFiel
 
     @discardableResult func createWindow(show: Bool = true) -> Bool {
         artwork["local"] = NSImage(systemSymbolName: "cpu", accessibilityDescription: nil)
-        for name in ["github", "claude", "codex"] {
+        for name in ["github", "claude", "codex", "workbuddy"] {
             guard let url = Bundle.main.url(forResource: name, withExtension: "png"),
                   let image = NSImage(contentsOf: url) else {
                 showError("The app is missing its \(name) artwork.")
@@ -1057,6 +1057,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTextFiel
         checkbox("Codex", key: "codex", group: "connected", y: 109, height: 44, action: #selector(toggleCodex), x: 18, width: 364)
         checkbox("Claude Code", key: "claude", group: "connected", y: 153, height: 44, action: #selector(toggleClaude), x: 18, width: 364)
         checkbox("GitHub Copilot", key: "copilot", group: "connected", y: 197, height: 44, action: #selector(toggleCopilot), x: 18, width: 364)
+        checkbox("WorkBuddy", key: "workbuddy", group: "connected", y: 241, height: 44, action: #selector(toggleWorkBuddy), x: 18, width: 364)
         button("Back", key: "settingsBack", group: "settings", y: 0, action: #selector(done), x: 16, width: 32, height: 32)
         (controls["settingsBack"] as? NSButton)?.keyEquivalent = "\u{1b}"
         label("Settings", key: "settingsTitle", group: "settings", y: 8, height: 22, x: 48, width: 328, size: 13)
@@ -1261,7 +1262,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTextFiel
     func action(_ path: String, _ body: [String: Any] = [:]) {
         guard !busy, !terminating, currentView != "starting" else { return }
         busy = true
-        pendingBridge = ["codex", "claude", "copilot"].first { path == "/api/toggle-\($0)" }
+        pendingBridge = ["codex", "claude", "copilot", "workbuddy"].first { path == "/api/toggle-\($0)" }
         actionFocus = window.firstResponder
         if let field = controls.values.first(where: {
             ($0 as? NSTextField)?.currentEditor() === window.firstResponder
@@ -1357,10 +1358,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTextFiel
                         menu.popUp(positioning: nil, at: NSPoint(x: 0, y: anchor.bounds.height), in: anchor)
                     }
                 */
-                case "/api/toggle-codex", "/api/toggle-claude", "/api/toggle-copilot":
+                case "/api/toggle-codex", "/api/toggle-claude", "/api/toggle-copilot", "/api/toggle-workbuddy":
                     self.status["codexEnabled"] = value["codexEnabled"]
                     self.status["claudeEnabled"] = value["claudeEnabled"]
                     self.status["copilotEnabled"] = value["copilotEnabled"]
+                    self.status["workbuddyEnabled"] = value["workbuddyEnabled"]
                 case "/api/disconnect":
                     self.currentView = "idle"
                     self.actionFocus = self.controls["connect"]
@@ -1461,7 +1463,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTextFiel
             window.setFrameTopLeftPoint(NSPoint(x: window.frame.minX, y: top))
         }
         (window.contentView as? GlassBackdropView)?.setGlassTopInset(currentView == "connected" ? homeGlassY : 0)
-        for (key, y) in [("codex", 109), ("claude", 153), ("copilot", 197)] {
+        for (key, y) in [("codex", 109), ("claude", 153), ("copilot", 197), ("workbuddy", 241)] {
             controls[key]?.frame.origin.y = CGFloat(y) + homeOffset
         }
         controls["connect"]?.frame.origin.y = 160
@@ -1523,7 +1525,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTextFiel
         (controls["serverToggle"] as? NSButton)?.title = serverAction
         (controls["serverToggle"] as? NSButton)?.setAccessibilityLabel(serverAction)
         */
-        for (key, field) in [("codex", "codexEnabled"), ("claude", "claudeEnabled"), ("copilot", "copilotEnabled")] {
+        for (key, field) in [("codex", "codexEnabled"), ("claude", "claudeEnabled"), ("copilot", "copilotEnabled"), ("workbuddy", "workbuddyEnabled")] {
             if let button = controls[key] as? NativeButton {
                 button.state = status[field] as? Bool == true ? .on : .off
                 if button.accessibilityHelp() != button.bridgeStatusText {
@@ -1654,6 +1656,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, NSTextFiel
     @objc func toggleCodex() { action("/api/toggle-codex") }
     @objc func toggleClaude() { action("/api/toggle-claude") }
     @objc func toggleCopilot() { action("/api/toggle-copilot") }
+    @objc func toggleWorkBuddy() { action("/api/toggle-workbuddy") }
     @objc func disconnect() { action("/api/disconnect") }
     @objc func showAccounts() {
         guard let anchor = controls["accounts"] else { return }

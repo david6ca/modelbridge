@@ -86,7 +86,8 @@ class StartupCheckDelegate: AppDelegate {
         let pixels = bitmap.converting(to: .sRGB, renderingIntent: .relativeColorimetric)!
         let background = NativeColors.current.background.usingColorSpace(.sRGB)!
         let scale = CGFloat(pixels.pixelsWide) / content.bounds.width
-        check((Array(24..<72) + Array(356..<374)).allSatisfy { y in
+        let footerBottom = Int(content.bounds.height) - 8
+        check((Array(24..<72) + Array((footerBottom - 18)..<footerBottom)).allSatisfy { y in
             (24..<376).allSatisfy { x in
                 let pixel = pixels.colorAt(x: Int(CGFloat(x) * scale), y: Int(CGFloat(y) * scale))!
                 if NativeColors.usesGlass { return pixel.alphaComponent < 0.02 }

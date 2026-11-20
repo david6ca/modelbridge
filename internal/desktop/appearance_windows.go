@@ -51,7 +51,7 @@ func themePalette(dark, high bool) palette {
 
 func (w *Window) loadArtwork() error {
 	w.artwork = map[string]image.Image{}
-	for name, data := range map[string][]byte{"github": assets.GitHub, "claude": assets.Claude, "codex": assets.Codex} {
+	for name, data := range map[string][]byte{"github": assets.GitHub, "claude": assets.Claude, "codex": assets.Codex, "workbuddy": assets.WorkBuddy} {
 		im, err := png.Decode(bytes.NewReader(data))
 		if err != nil {
 			return fmt.Errorf("load %s artwork: %w", name, err)
@@ -87,7 +87,7 @@ func credits(value float64) string {
 func (w *Window) contentHeight() int {
 	switch w.view {
 	case "connected":
-		return 268
+		return 312
 	case "idle", "starting":
 		return 259
 	case "settings":
@@ -446,7 +446,7 @@ func (w *Window) paintControl(c control, dc uintptr) {
 		if w.view == "device" && (c.view == "device" || c.id == 12) {
 			bg = colors.input
 		}
-		if c.id == idClaude || c.id == idCodex || c.id == idCopilot {
+		if c.id == idClaude || c.id == idCodex || c.id == idCopilot || c.id == idWorkBuddy {
 			bg = colors.panel
 		}
 		p.fill(0, 0, c.w, c.h, bg)
@@ -514,10 +514,12 @@ func (w *Window) paintControl(c control, dc uintptr) {
 			p.text(title, 0, 0, c.w, c.h, w.heading, fg, 0x824)
 		case idAppearanceLabel, idLanguageLabel:
 			p.text(title, 0, 0, c.w, c.h, w.font, fg, 0x24)
-		case idClaude, idCodex, idCopilot:
+		case idClaude, idCodex, idCopilot, idWorkBuddy:
 			p.round(10, 6, 32, 32, 8, colors.tile, colors.border)
 			if c.id == idClaude {
 				p.artwork("claude", 16, 12, 20, colors.tile, 0xd97757, true)
+			} else if c.id == idWorkBuddy {
+				p.artwork("workbuddy", 14, 10, 24, colors.tile, colors.text, false)
 			} else if c.id == idCopilot {
 				p.artwork("github", 16, 12, 20, colors.tile, colors.accent, true)
 			} else {
@@ -628,7 +630,7 @@ func (w *Window) paintControl(c control, dc uintptr) {
 			x, y, right, bottom := 2, 2, c.w-2, c.h-2
 			if c.id == idStartup || c.id == idTray {
 				x, y, right, bottom = c.w-32, 2, c.w-4, 30
-			} else if c.id == idClaude || c.id == idCodex || c.id == idCopilot {
+			} else if c.id == idClaude || c.id == idCodex || c.id == idCopilot || c.id == idWorkBuddy {
 				x, y, right, bottom = c.w-59, 6, c.w-7, 38
 			}
 			r := rect{int32(p.s(x)), int32(p.s(y)), int32(p.s(right)), int32(p.s(bottom))}

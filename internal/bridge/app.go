@@ -41,6 +41,7 @@ type session struct {
 	Codex       bool      `json:"codexEnabled"`
 	Claude      bool      `json:"claudeEnabled"`
 	Copilot     bool      `json:"copilotEnabled"`
+	WorkBuddy   bool      `json:"workbuddyEnabled"`
 	Method      string    `json:"authMethod"`
 	Accounts    []account `json:"accounts,omitempty"`
 	LocalModel  string    `json:"localModel,omitempty"`
@@ -91,6 +92,7 @@ type App struct {
 	stopError                     error
 	watchOnce                     sync.Once
 	copilotWatchOnce              sync.Once
+	workBuddyWatchOnce            sync.Once
 	closed                        chan struct{}
 	copilotSession                func() (copilotSelection, error)
 	copilotSessions               func() ([]copilotSelection, error)
@@ -186,6 +188,9 @@ func (a *App) ControlURL() string   { return fmt.Sprintf("http://127.0.0.1:%d", 
 func (a *App) CopilotURL() string {
 	return fmt.Sprintf("http://127.0.0.1:%d/v1", a.options.Ports.Copilot)
 }
+func (a *App) WorkBuddyURL() string {
+	return fmt.Sprintf("http://127.0.0.1:%d/v1", a.options.Ports.Codex+5)
+}
 func (a *App) Closed() <-chan struct{} { return a.closed }
 func (a *App) path(name string) string { return filepath.Join(a.options.Home, ".kobashi", name) }
 func (a *App) report(err error) {
@@ -198,8 +203,8 @@ func (a *App) report(err error) {
 	a.mu.Unlock()
 }
 func (a *App) Start() error {
-	handlers := []http.Handler{http.HandlerFunc(a.codex), http.HandlerFunc(a.control), http.HandlerFunc(a.claude), http.HandlerFunc(a.copilotApp)}
-	ports := []int{a.options.Ports.Codex, a.options.Ports.Control, a.options.Ports.Claude, a.options.Ports.Copilot}
+	handlers := []http.Handler{http.HandlerFunc(a.codex), http.HandlerFunc(a.control), http.HandlerFunc(a.claude), http.HandlerFunc(a.copilotApp), http.HandlerFunc(a.workBuddy)}
+	ports := []int{a.options.Ports.Codex, a.options.Ports.Control, a.options.Ports.Claude, a.options.Ports.Copilot, a.options.Ports.Codex + 5}
 	listeners := []net.Listener{}
 	for _, port := range ports {
 		listener, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", port))
@@ -227,6 +232,7 @@ func (a *App) Start() error {
 	a.wg.Add(1)
 	go func() { defer a.wg.Done(); a.initialize() }()
 	a.startCopilotWatcher()
+	a.startWorkBuddyWatcher()
 	return nil
 }
 func (a *App) initialize() {
@@ -317,6 +323,11 @@ func (a *App) initialize() {
 			a.report(err)
 		}
 	}
+	if saved.WorkBuddy {
+		if err = a.injectWorkBuddy(); err != nil {
+			a.report(err)
+		}
+	}
 	a.startWatcher()
 }
 func (a *App) configureStartup(enabled bool) error {
@@ -402,6 +413,9 @@ func (a *App) Stop() error {
 		if state.Claude {
 			result = errors.Join(result, a.restoreClaude())
 		}
+		if state.WorkBuddy {
+			result = errors.Join(result, a.restoreWorkBuddy())
+		}
 		a.actions.Unlock()
 		a.stopError = result
 		a.report(result)
@@ -433,6 +447,9 @@ func (a *App) disconnectAccounts(accounts []account) error {
 	}
 	if state.Claude {
 		err = errors.Join(err, a.restoreClaude())
+	}
+	if state.WorkBuddy {
+		err = errors.Join(err, a.restoreWorkBuddy())
 	}
 	if err != nil {
 		return err
@@ -673,7 +690,7 @@ func (a *App) control(w http.ResponseWriter, r *http.Request) {
 			a.mu.RLock()
 			s := a.state
 			status := object{"ready": a.ready, "connected": s.active(), "username": s.Username, "authMethod": s.Method, "codexEnabled": s.Codex, "claudeEnabled": s.Claude,
-				"copilotEnabled": s.Copilot, "copilotURL": a.CopilotURL(),
+				"copilotEnabled": s.Copilot, "copilotURL": a.CopilotURL(), "workbuddyEnabled": s.WorkBuddy, "workbuddyURL": a.WorkBuddyURL(),
 				"version": a.options.Version, "error": a.lastError, "lastEffort": a.lastEffort, "usage": a.usage, "appearance": a.appearance, "language": a.language}
 			status["accounts"] = publicAccounts(s)
 			status["localModel"] = s.LocalModel
@@ -832,6 +849,9 @@ func (a *App) control(w http.ResponseWriter, r *http.Request) {
 		if err == nil {
 			result, err = a.pollLogin(r.Context(), str(body["device_code"]))
 		}
+	case "/api/toggle-workbuddy":
+		err = a.toggleWorkBuddy()
+		result = a.clientStates()
 	case "/api/toggle-copilot":
 		state := a.snapshot()
 		if !state.active() {
@@ -841,7 +861,8 @@ func (a *App) control(w http.ResponseWriter, r *http.Request) {
 		if !state.Copilot {
 			var notice string
 			notice, err = a.enableCopilot()
-			result = object{"codexEnabled": state.Codex, "claudeEnabled": state.Claude, "copilotEnabled": a.snapshot().Copilot, "notice": notice}
+			result = a.clientStates()
+			result.(object)["notice"] = notice
 			break
 		}
 		if err = a.restoreCopilot(); err == nil {
@@ -854,7 +875,7 @@ func (a *App) control(w http.ResponseWriter, r *http.Request) {
 				a.mu.Unlock()
 			}
 		}
-		result = object{"codexEnabled": state.Codex, "claudeEnabled": state.Claude, "copilotEnabled": a.snapshot().Copilot}
+		result = a.clientStates()
 	case "/api/toggle-codex", "/api/toggle-claude":
 		state := a.snapshot()
 		if !state.active() {
@@ -897,7 +918,7 @@ func (a *App) control(w http.ResponseWriter, r *http.Request) {
 		} else {
 			err = a.saveSession()
 		}
-		result = object{"codexEnabled": a.snapshot().Codex, "claudeEnabled": a.snapshot().Claude, "copilotEnabled": a.snapshot().Copilot}
+		result = a.clientStates()
 	case "/api/disconnect":
 		a.pendingLogin = deviceLogin{}
 		err = a.disconnect()

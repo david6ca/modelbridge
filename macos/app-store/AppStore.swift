@@ -6,7 +6,7 @@ final class AppStoreDelegate: AppDelegate {
     private var scopes: [String: URL] = [:]
 
     override func action(_ path: String, _ body: [String: Any] = [:]) {
-        let clients = ["/api/toggle-codex": "codex", "/api/toggle-claude": "claude", "/api/toggle-copilot": "copilot"]
+        let clients = ["/api/toggle-codex": "codex", "/api/toggle-claude": "claude", "/api/toggle-copilot": "copilot", "/api/toggle-workbuddy": "workbuddy"]
         if let client = clients[path], status[client + "Enabled"] as? Bool != true,
            !authorizeClientFolder(client) { return }
         super.action(path, body)
@@ -26,7 +26,7 @@ final class AppStoreDelegate: AppDelegate {
             }
         }
         let panel = NSOpenPanel()
-        panel.title = ["codex": "Codex", "claude": "Claude Code", "copilot": "GitHub Copilot"][client]!
+        panel.title = ["codex": "Codex", "claude": "Claude Code", "copilot": "GitHub Copilot", "workbuddy": "WorkBuddy"][client]!
         panel.message = L("Choose client configuration folder")
         panel.prompt = L("Allow")
         panel.canChooseDirectories = true

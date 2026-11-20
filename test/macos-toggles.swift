@@ -8,7 +8,7 @@ func check(_ condition: @autoclosure () -> Bool, _ message: String) {
 
 class ToggleCheckDelegate: AppDelegate {
     var requests: [String] = []
-    var enabled = ["codexEnabled": true, "claudeEnabled": true, "copilotEnabled": true]
+    var enabled = ["codexEnabled": true, "claudeEnabled": true, "copilotEnabled": true, "workbuddyEnabled": true]
     var step = 0
     var nextError: String?
     let clicks = [
@@ -17,18 +17,21 @@ class ToggleCheckDelegate: AppDelegate {
         ("claude", NSPoint(x: 295, y: 25)),
         ("claude", NSPoint(x: 168, y: 25)),
         ("copilot", NSPoint(x: 295, y: 25)),
-        ("copilot", NSPoint(x: 168, y: 25))
+        ("copilot", NSPoint(x: 168, y: 25)),
+        ("workbuddy", NSPoint(x: 295, y: 25)),
+        ("workbuddy", NSPoint(x: 168, y: 25))
     ]
 
     override func applicationDidFinishLaunching(_ notification: Notification) {
         check(createWindow(), "The isolated toggle window loads")
         currentView = "connected"
-        status = ["connected": true, "codexEnabled": true, "claudeEnabled": true, "copilotEnabled": true,
+        status = ["connected": true, "codexEnabled": true, "claudeEnabled": true, "copilotEnabled": true, "workbuddyEnabled": true,
                   "copilotURL": "http://127.0.0.1:18925/v1"]
         render()
         let clients = [("codex", "Codex", CGFloat(109)),
                        ("claude", "Claude Code", CGFloat(153)),
-                       ("copilot", "GitHub Copilot", CGFloat(197))]
+                       ("copilot", "GitHub Copilot", CGFloat(197)),
+                       ("workbuddy", "WorkBuddy", CGFloat(241))]
         for (key, title, y) in clients {
             let button = controls[key] as! NativeButton
             check(button.title == title && button.accessibilityLabel() == title && button.frame.minY == y,
@@ -37,8 +40,8 @@ class ToggleCheckDelegate: AppDelegate {
                   "\(title) fits its client label without truncation")
         }
         let clientKeys = groups["connected"]!.compactMap { ($0 as? NativeButton)?.key }
-            .filter { ["codex", "claude", "copilot"].contains($0) }
-        check(clientKeys == ["codex", "claude", "copilot"],
+            .filter { ["codex", "claude", "copilot", "workbuddy"].contains($0) }
+        check(clientKeys == ["codex", "claude", "copilot", "workbuddy"],
               "Client controls are created in visual order for keyboard navigation")
         NSApp.activate(ignoringOtherApps: true)
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) { self.clickNext() }
@@ -60,7 +63,7 @@ class ToggleCheckDelegate: AppDelegate {
               controls["codex"]?.frame.minY == 109 && controls["claude"]?.frame.minY == 153 &&
               controls["copilot"]?.frame.minY == 197,
               "The pending \(key) toggle does not move or resize the homepage")
-        for other in ["codex", "claude", "copilot"] {
+        for other in ["codex", "claude", "copilot", "workbuddy"] {
             let button = controls[other] as! NativeButton
             let expected = other == key ? "Working..." : enabled["\(other)Enabled"] == true ? "Active" : "Paused"
             check(button.bridgeStatusText == expected && button.accessibilityHelp() == expected,

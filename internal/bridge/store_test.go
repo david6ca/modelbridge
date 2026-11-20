@@ -40,6 +40,18 @@ func TestAppStoreRequiresBookmarkBeforeEnablingClient(t *testing.T) {
 	}
 }
 
+func TestAppStoreRequiresWorkBuddyFolderAccess(t *testing.T) {
+	a := testApp(t, nil)
+	a.state = session{LocalModel: "qwen3-4b", Username: "fixture"}
+	result := controlCall(a, "/api/toggle-workbuddy", object{})
+	if result.Code != http.StatusBadRequest || a.snapshot().WorkBuddy {
+		t.Fatal("WorkBuddy was enabled without a folder grant", result.Code)
+	}
+	if _, err := os.Stat(a.workBuddyConfigPath()); !os.IsNotExist(err) {
+		t.Fatal("unapproved WorkBuddy configuration was written", err)
+	}
+}
+
 func TestAppStoreMissingBundledRuntimeNeverDownloadsCode(t *testing.T) {
 	calls := 0
 	a := testApp(t, func(*http.Request) (*http.Response, error) { calls++; return nil, nil })

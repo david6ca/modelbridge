@@ -31,6 +31,9 @@ func (a *App) copilotApp(w http.ResponseWriter, r *http.Request) {
 	a.openAI(w, r, true)
 }
 func (a *App) openAI(w http.ResponseWriter, r *http.Request, copilotApp bool) {
+	a.openAIFor(w, r, copilotApp, false)
+}
+func (a *App) openAIFor(w http.ResponseWriter, r *http.Request, copilotApp, workbuddy bool) {
 	a.routes.RLock()
 	defer a.routes.RUnlock()
 	state := a.snapshot()
@@ -38,6 +41,9 @@ func (a *App) openAI(w http.ResponseWriter, r *http.Request, copilotApp bool) {
 	// protocol := "codex"
 	if copilotApp {
 		name, enabled = "Copilot", state.Copilot
+		if workbuddy {
+			name, enabled = "WorkBuddy", state.WorkBuddy
+		}
 		// protocol = "copilot"
 		if !((r.Method == "GET" && r.URL.Path == "/v1/models") ||
 			(r.Method == "POST" && contains([]string{"/v1/responses", "/v1/responses/compact", "/v1/chat/completions"}, r.URL.Path))) {
@@ -53,6 +59,9 @@ func (a *App) openAI(w http.ResponseWriter, r *http.Request, copilotApp bool) {
 	*/
 	if !state.active() || !enabled {
 		respond(w, 401, object{"error": name + " bridge not active"})
+		return
+	}
+	if workbuddy && !a.prepareWorkBuddyRequest(w, r, state) {
 		return
 	}
 	if state.LocalModel != "" {

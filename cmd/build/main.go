@@ -22,13 +22,16 @@ func main() {
 	storeScreenshots := flag.Bool("store-screenshots", false, "Capture the current native window compositor for store assets")
 	testLocalization := flag.Bool("test-mac-localization", false, "Run offscreen native localization/menu checks and optional screenshot capture")
 	testMac := flag.Bool("test-mac", false, "Run isolated Cocoa lifecycle checks on macOS")
+	testMacCase := flag.String("test-mac-case", "", "Run one isolated Cocoa harness from test/")
 	testArtwork := flag.Bool("test-mac-artwork", false, "Run offscreen Cocoa artwork checks without opening windows")
 	testAccounts := flag.Bool("test-mac-accounts", false, "Run isolated Cocoa account-switcher checks")
 	testContext := flag.Bool("test-mac-context", false, "Run isolated Cocoa local-context slider checks")
 	smoke := flag.Bool("smoke", false, "Run the interactive isolated Cocoa smoke check")
 	flag.Parse()
 	var err error
-	if *storeScreenshots {
+	if *testMacCase != "" {
+		err = checkMacHarness(*testMacCase)
+	} else if *storeScreenshots {
 		err = checkMacHarness("macos-store-screenshots.swift")
 	} else if *testLocalization {
 		err = checkMacHarness("macos-localization.swift")
@@ -213,7 +216,7 @@ func build(target, destination string) error {
 			return err
 		}
 	}
-	for _, name := range []string{"native.go", "modelbridge-icon.ico", "modelbridge-icon.png", "github.png", "claude.png", "codex.png"} {
+	for _, name := range []string{"native.go", "modelbridge-icon.ico", "modelbridge-icon.png", "github.png", "claude.png", "codex.png", "workbuddy.png"} {
 		if err = copyFile(filepath.Join(source, "assets", name), filepath.Join(workspace, "assets", name)); err != nil {
 			return err
 		}
@@ -276,7 +279,7 @@ func buildMac(workspace, output string, env []string, version string) error {
 	if err := os.MkdirAll(filepath.Join(app, "MacOS"), 0700); err != nil {
 		return err
 	}
-	for _, name := range []string{"modelbridge-icon.png", "github.png", "claude.png", "codex.png"} {
+	for _, name := range []string{"modelbridge-icon.png", "github.png", "claude.png", "codex.png", "workbuddy.png"} {
 		if err := copyFile(filepath.Join(workspace, "assets", name), filepath.Join(app, "Resources", name)); err != nil {
 			return err
 		}

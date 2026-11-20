@@ -1,6 +1,6 @@
 # ModelBridge
 
-Route Claude Code, OpenAI Codex, and the GitHub Copilot app through GitHub Copilot or managed local models.
+Route Claude Code, OpenAI Codex, GitHub Copilot, and WorkBuddy through GitHub Copilot or managed local models.
 
 ModelBridge is a local bridge that lets [Claude Code](https://www.anthropic.com/claude-code), [OpenAI Codex](https://openai.com/index/introducing-gpt-5-3-codex/), and the [GitHub Copilot app](https://github.com/github/app) use your existing GitHub Copilot subscription instead of separate Anthropic or OpenAI API keys. The Copilot app can keep its own GitHub login while using the account connected to ModelBridge for model inference.
 
@@ -37,7 +37,7 @@ ModelBridge; the upgrade never stops your active connection automatically.
 
 1. **Double-click** the app — a native Win32 window opens on Windows, or a Cocoa window on macOS
 2. **Click Not Connected** — on macOS, choose **Add GitHub account** for GitHub device authorization, or **Add a local model** for local setup. After connecting, **Connected** opens the account menu. Windows retains its GitHub sign-in flow.
-3. **Toggle the clients** — enable Claude, Codex, and/or Copilot
+3. **Toggle the clients** — enable Claude, Codex, Copilot, and/or WorkBuddy
 4. **Connect your clients** — ModelBridge auto-configures `~/.claude/settings.json` and `~/.codex/`. Enabling Copilot registers its provider when the app is available and automatically connects eligible idle local sessions; no preselected session is required.
 
 The Go bridge intercepts API requests on localhost and forwards them to the GitHub Copilot API using your Copilot token. It manages token refresh, config injection, cleanup, and Anthropic↔OpenAI format translation automatically. The application uses only native code and operating-system libraries. The macOS GitHub page only offers device authorization. Click its GitHub URL to open your browser.
@@ -162,6 +162,34 @@ Models and engine logs are stored under `~/.kobashi/local`. Removing a local
 account keeps its downloads. Local inference remains Apple Silicon/macOS 15+;
 Windows and Intel Macs retain GitHub Copilot sources.
 
+### WorkBuddy
+
+Enable **WorkBuddy** in ModelBridge to synchronize the active account's available
+models into `~/.workbuddy/models.json`. WorkBuddy's custom model picker shows the
+actual names as **ModelBridge · GPT…**, **ModelBridge · Claude…**, or the selected
+local model. Select the model you want in WorkBuddy. URLs, keys, supported image
+input, reasoning options, and token limits are configured by the app.
+The App Store build asks for the WorkBuddy configuration folder on first use.
+
+The catalog updates automatically while enabled, including after switching
+ModelBridge accounts or local models. Models explicitly edited in WorkBuddy and
+unrelated providers are preserved. Named models route to that exact model;
+unavailable selections report an error rather than falling back to another one.
+The earlier `modelbridge` ID remains as **ModelBridge · Auto** for existing
+conversations. WorkBuddy's built-in Tencent models remain available, and existing
+conversation model selections are preserved.
+
+The independent loopback endpoint is `http://127.0.0.1:18926/v1`
+(`18926 + N` with `--port-offset N`), with placeholder key `PROXY_MANAGED`.
+WorkBuddy uses Chat Completions. ModelBridge translates Requests and Responses
+for Responses-only models, including streaming, function calls/results, images,
+and reasoning effort. Chat-compatible and local models keep their native route.
+
+Turning the switch off, disconnecting, or quitting restores managed entries and
+preserves later user edits. The enabled preference survives restarts. Keep
+ModelBridge running; if WorkBuddy has an already-open model picker, reopen it to
+refresh its catalog. No WorkBuddy application files are modified.
+
 ### Multiple accounts
 
 Click anywhere on **Connected** or its arrow to see saved accounts. The current
@@ -193,7 +221,7 @@ the window. Settings are saved in `~/.kobashi/settings.json` independently of yo
 GitHub connection and are preserved when you disconnect. The main window is
 400 logical pixels wide. On macOS, the connected main screen uses a 400 × 259
 content area and Settings uses 400 × 220. Windows reserves additional space
-below its native titlebar: connected content is 400 × 268 and Settings is
+below its native titlebar: connected content is 400 × 312 and Settings is
 400 × 236. Its account card has matching 28-point visible top, bottom and side
 insets; the Settings heading starts at 24 points, with the navigation glyph
 optically aligned. GitHub device authorization uses 400 × 232 on both platforms.
@@ -658,7 +686,7 @@ switch/remove hit targets, add/cancel flow, focus restoration, and scrolling che
 Native window checks first cover startup connection retries, saved-login readiness,
 polling error recovery, and visible real failures using an isolated URL session.
 They then send mouse events through an isolated app event loop to
-verify that all three bridge cards toggle off and back on when clicked on the switch
+verify that all four bridge cards toggle off and back on when clicked on the switch
 or card body. Toggle requests use a fake service without changing client settings.
 The lifecycle checks exercise the fixed window size, close-to-tray setting, menu-bar
 restore entry, repeated restoration, minimization, and the termination callback.

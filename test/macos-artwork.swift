@@ -73,7 +73,7 @@ for scale in [1, 2] {
     check(alpha(0, 0) == 0 && alpha(11, 5) == 0 && alpha(11, 12) == 0,
           "The \(scale)x menu-bar mark stays transparent outside the connection shape")
 }
-for key in ["github", "claude", "codex"] {
+for key in ["github", "claude", "codex", "workbuddy"] {
     guard let url = Bundle.main.url(forResource: key, withExtension: "png"),
           let image = NSImage(contentsOf: url) else {
         check(false, "The original \(key) artwork loads")
